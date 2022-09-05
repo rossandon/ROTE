@@ -3,28 +3,58 @@ package orderBook;
 import java.util.ArrayList;
 
 public class OrderBook {
-    public ArrayList<OrderBookEntry> Bids = new ArrayList<>();
-    public ArrayList<OrderBookEntry> Asks = new ArrayList<>();
+    private long _idCounter;
+    public final ArrayList<OrderBookEntry> Bids = new ArrayList<>();
+    public final ArrayList<OrderBookEntry> Asks = new ArrayList<>();
 
-    public OrderBookLimitOrderResult process(OrderBookLimitOrder order) {
-        var executionResult = ExecuteLimitOrder(order, GetExecutionSide(order.side()));
+    public OrderBookLimitOrderResult processOrder(OrderBookLimitOrder order) {
+        var allEntries = getExecutionSide(order.side());
+        var executableEntries = getExecutableEntries(order, allEntries);
+        if (containsCross(executableEntries, order))
+            return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Rejected, null, null);
+        var executionResult = executeLimitOrder(order, allEntries, executableEntries);
         if (!executionResult.partial())
-            return new OrderBookLimitOrderResult(executionResult.trades(), null);
+            return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Filled, executionResult.trades(), null);
         var restingOrder = addRestingOrder(executionResult.getRestingOrder());
-        return new OrderBookLimitOrderResult(executionResult.trades(), restingOrder);
+        if (executionResult.trades().isEmpty())
+            return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Resting, null, restingOrder);
+        return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Partial, executionResult.trades(), restingOrder);
     }
 
-    private ArrayList<OrderBookEntry> GetExecutionSide(OrderBookSide side) {
+    public boolean cancelOrder(long id) {
+        return cancelOrder(id, Bids) || cancelOrder(id, Asks);
+    }
+
+    private static boolean cancelOrder(long id, ArrayList<OrderBookEntry> entries) {
+        for (int i = 0; i < entries.size(); i++) {
+            var entry = entries.get(i);
+            if (entry.id() == id) {
+                entries.remove(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsCross(ArrayList<OrderBookEntry> entries, OrderBookLimitOrder order) {
+        for (OrderBookEntry entry : entries) {
+            if (entry.accountId() == order.accountId())
+                return true;
+        }
+        return false;
+    }
+
+    private ArrayList<OrderBookEntry> getExecutionSide(OrderBookSide side) {
         return side == OrderBookSide.Buy ? Asks : Bids;
     }
 
-    private ArrayList<OrderBookEntry> GetRestingSide(OrderBookSide side) {
+    private ArrayList<OrderBookEntry> getRestingSide(OrderBookSide side) {
         return side == OrderBookSide.Sell ? Asks : Bids;
     }
 
     private OrderBookEntry addRestingOrder(OrderBookLimitOrder order) {
-        var newEntry = new OrderBookEntry(order.size(), order.price(), order.accountId());
-        var orderBookEntries = GetRestingSide(order.side());
+        var newEntry = new OrderBookEntry(order.size(), order.price(), order.accountId(), _idCounter++);
+        var orderBookEntries = getRestingSide(order.side());
         for (int i = 0; i < orderBookEntries.size(); i++) {
             var entry = orderBookEntries.get(i);
             var isImprovement = order.side() == OrderBookSide.Buy
@@ -41,26 +71,24 @@ public class OrderBook {
         return newEntry;
     }
 
-    private OrderBookExecutionResult ExecuteLimitOrder(OrderBookLimitOrder order, ArrayList<OrderBookEntry> entries) {
+    private OrderBookExecutionResult executeLimitOrder(OrderBookLimitOrder order, ArrayList<OrderBookEntry> allEntries, ArrayList<OrderBookEntry> executableEntries) {
         var totalSize = 0;
         var trades = new ArrayList<OrderBookTrade>();
 
-        for (var i = 0; i < entries.size(); i++) {
-            var entry = entries.get(i);
-            var trade = order.tryFill(entry);
-            if (trade == null)
-                break;
+        for (var i = 0; i < executableEntries.size(); i++) {
+            var entry = allEntries.get(i);
+            var trade = order.fill(entry);
             var remainingOnOrder = entry.size() - trade.size();
-            entries.set(i, new OrderBookEntry(remainingOnOrder, entry.price(), order.accountId()));
+            allEntries.set(i, entry.withSize(remainingOnOrder));
             trades.add(trade);
             totalSize += trade.size();
             if (totalSize == order.size())
                 return new OrderBookExecutionResult(order, totalSize, trades);
         }
 
-        while (entries.size() > 0) {
-            if (entries.get(0).size() == 0)
-                entries.remove(0);
+        while (allEntries.size() > 0) {
+            if (allEntries.get(0).size() == 0)
+                allEntries.remove(0);
             else
                 break;
         }
@@ -68,4 +96,17 @@ public class OrderBook {
         return new OrderBookExecutionResult(order, totalSize, trades);
     }
 
+    private static ArrayList<OrderBookEntry> getExecutableEntries(OrderBookLimitOrder order, ArrayList<OrderBookEntry> entries) {
+        var executableEntries = new ArrayList<OrderBookEntry>();
+        var remaining = order.size();
+        for (OrderBookEntry entry : entries) {
+            if (!order.canFill(entry))
+                break;
+            executableEntries.add(entry);
+            remaining -= entry.size();
+            if (remaining <= 0)
+                break;
+        }
+        return executableEntries;
+    }
 }

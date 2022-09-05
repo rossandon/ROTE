@@ -1,11 +1,15 @@
+package tradingEngine;
+
 import orderBook.OrderBook;
+import referential.Asset;
+import referential.Instrument;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class TradingEngineContext {
-    public HashMap<Account, HashMap<Asset, Long>> balances;
-    public HashMap<Instrument, InstrumentOrderBook> orderBooks;
+    public final HashMap<Long, HashMap<Asset, Long>> balances;
+    public final HashMap<Instrument, InstrumentOrderBook> orderBooks;
 
     public TradingEngineContext() {
         balances = new HashMap<>();
@@ -23,8 +27,11 @@ public class TradingEngineContext {
     }
 
     public Long getBalance(Account account, Asset asset) {
-        if (balances.containsKey(account)) {
-            var balancesByAsset = balances.get(account);
+        return getBalance(account.accountId(), asset);
+    }
+    public Long getBalance(Long accountId, Asset asset) {
+        if (balances.containsKey(accountId)) {
+            var balancesByAsset = balances.get(accountId);
             if (balancesByAsset.containsKey(asset)) {
                 return balancesByAsset.get(asset);
             }
@@ -33,8 +40,12 @@ public class TradingEngineContext {
     }
 
     public void adjustBalance(Account account, Asset asset, long adjustment) {
-        if (balances.containsKey(account)) {
-            var balancesByAsset = balances.get(account);
+        adjustBalance(account.accountId(), asset, adjustment);
+    }
+
+    public void adjustBalance(Long accountId, Asset asset, long adjustment) {
+        if (balances.containsKey(accountId)) {
+            var balancesByAsset = balances.get(accountId);
             if (balancesByAsset.containsKey(asset)) {
                 var balance = balancesByAsset.get(asset);
                 balancesByAsset.put(asset, balance + adjustment);
@@ -42,7 +53,7 @@ public class TradingEngineContext {
                 balancesByAsset.put(asset, adjustment);
             }
         } else {
-            balances.put(account, new HashMap<>(Map.of(asset, adjustment)));
+            balances.put(accountId, new HashMap<>(Map.of(asset, adjustment)));
         }
     }
 }
