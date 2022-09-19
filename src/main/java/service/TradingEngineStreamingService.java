@@ -5,6 +5,7 @@ import kafka.KafkaConsts;
 import orderBook.OrderBookSide;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
+import referential.Asset;
 import referential.InstrumentInventory;
 import tradingEngine.Account;
 import tradingEngine.LimitOrder;
@@ -37,9 +38,26 @@ public class TradingEngineStreamingService implements Runnable {
         var responseTopic = new String(responseTopicBytes, StandardCharsets.UTF_8);
         var responseId = new String(responseIdBytes, StandardCharsets.UTF_8);
         if (request.type() == TradingEngineServiceRequestType.LimitOrder) {
-            var response = handleOrderRequest(request.order());
+            var response = handleOrderRequest(request);
             sendResponse(responseTopic, responseId, response);
         }
+        else if (request.type() == TradingEngineServiceRequestType.AdjustBalance) {
+            handleUpdateBalanceRequest(request);
+            sendResponse(responseTopic, responseId, new TradingEngineServiceResponse(null, null));
+        }
+        else if (request.type() == TradingEngineServiceRequestType.GetBalance) {
+            var result = handleGetBalanceRequest(request);
+            sendResponse(responseTopic, responseId, new TradingEngineServiceResponse(null, result));
+        }
+    }
+
+    private GetBalanceResult handleGetBalanceRequest(TradingEngineServiceRequest request) {
+        var balance = tradingEngine.getBalance(request.accountId(), new Asset(request.assetCode()));
+        return new GetBalanceResult(balance);
+    }
+
+    private void handleUpdateBalanceRequest(TradingEngineServiceRequest request) {
+        tradingEngine.adjustBalance(new Account(request.accountId()), new Asset(request.assetCode()), request.amount());
     }
 
     private void sendResponse(String responseTopic, String responseId, TradingEngineServiceResponse response) {
@@ -48,10 +66,10 @@ public class TradingEngineStreamingService implements Runnable {
         client.produce(responseTopic, null, response, headers, false);
     }
 
-    private TradingEngineServiceResponse handleOrderRequest(TradingEngineServiceOrder order) {
-        var instrument = instrumentInventory.lookupInstrument(order.instrumentCode());
-        var limitOrder = new LimitOrder(instrument, new Account(order.accountId()), order.size(), order.price(), OrderBookSide.Buy);
+    private TradingEngineServiceResponse handleOrderRequest(TradingEngineServiceRequest request) {
+        var instrument = instrumentInventory.lookupInstrument(request.instrumentCode());
+        var limitOrder = new LimitOrder(instrument, new Account(request.accountId()), request.amount(), request.price(), request.side());
         var limitOrderResult = tradingEngine.processOrder(limitOrder);
-        return new TradingEngineServiceResponse(limitOrderResult);
+        return new TradingEngineServiceResponse(limitOrderResult, null);
     }
 }

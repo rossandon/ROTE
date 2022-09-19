@@ -28,10 +28,10 @@ public class TestHelpers {
     }
 
     public static <TKey, TValue> KafkaClient getKafkaClient(String groupId, String namespace) {
-        return new KafkaClient(namespace, getKafkaConfiguration(groupId));
+        return new KafkaClient(namespace, getKafkaConfiguration(namespace + groupId));
     }
 
     public static <TKey, TRequest, TResponse> KafkaRequestResponseClient<TKey, TRequest, TResponse> getKafkaRequestResponseClient(String groupId, String namespace) {
-        return new KafkaRequestResponseClient<TKey, TRequest, TResponse>(namespace, getKafkaConfiguration(groupId));
+        return new KafkaRequestResponseClient<TKey, TRequest, TResponse>(namespace, getKafkaConfiguration(namespace + groupId));
     }
 }

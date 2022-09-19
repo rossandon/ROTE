@@ -1,5 +1,6 @@
 package kafka;
 
+import Utils.UuidHelper;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
@@ -25,6 +26,7 @@ public class KafkaConfigurationProvider {
         props.put("value.serializer", "org.springframework.kafka.support.serializer.JsonSerializer");
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.springframework.kafka.support.serializer.JsonDeserializer");
+        props.put("client.id", UuidHelper.GetNewUuid());
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "service");
     }
 }
