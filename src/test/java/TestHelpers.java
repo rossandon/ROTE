@@ -23,15 +23,20 @@ public class TestHelpers {
 
     public static final String KafkaTestHost = "localhost:9092";
 
-    public static Properties getKafkaConfiguration(String groupId) {
-        return KafkaConfigurationProvider.getConfiguration(KafkaTestHost, groupId, true);
+    public static KafkaConfigurationProvider getKafkaConfiguration(String groupId, String namespace) {
+        var provider = new KafkaConfigurationProvider();
+        provider.environmentName = namespace;
+        provider.groupId = groupId;
+        provider.kafkaTargetHost = KafkaTestHost;
+        provider.fromStart = true;
+        return provider;
     }
 
     public static <TKey, TValue> KafkaClient getKafkaClient(String groupId, String namespace) {
-        return new KafkaClient(namespace, getKafkaConfiguration(namespace + groupId));
+        return new KafkaClient(getKafkaConfiguration(groupId, namespace));
     }
 
     public static <TKey, TRequest, TResponse> KafkaRequestResponseClient<TKey, TRequest, TResponse> getKafkaRequestResponseClient(String groupId, String namespace) {
-        return new KafkaRequestResponseClient<TKey, TRequest, TResponse>(namespace, getKafkaConfiguration(namespace + groupId));
+        return new KafkaRequestResponseClient<>(getKafkaConfiguration(groupId, namespace));
     }
 }

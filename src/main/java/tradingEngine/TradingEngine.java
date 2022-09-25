@@ -22,7 +22,7 @@ public class TradingEngine {
         return context.getBalance(accountId, asset);
     }
 
-    public LimitOrderResult processOrder(LimitOrder order) {
+    public LimitOrderResult limitOrder(LimitOrder order) {
         var hasFunding = tryReserveFunding(order);
         if (!hasFunding)
             return new LimitOrderResult(LimitOrderResultStatus.Rejected, null);
@@ -39,6 +39,17 @@ public class TradingEngine {
         }
 
         return new LimitOrderResult(LimitOrderResultStatus.Ok, result);
+    }
+
+    public boolean cancel(Account account, Instrument instrument, long orderId) {
+        var cancelledOrder = context.ensureOrderBook(instrument).orderBook().cancelOrder(orderId);
+
+        if (cancelledOrder != null) {
+            adjustBalance(account, instrument.quoteAsset(), cancelledOrder.fundingSize());
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private void bookTrades(OrderBookLimitOrderResult result, Instrument instrument) {

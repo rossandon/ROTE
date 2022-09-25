@@ -57,9 +57,9 @@ public class OrderBookTests {
         var res1 = book.processOrder(new OrderBookLimitOrder(10, 100, OrderBookSide.Sell, 0));
         book.processOrder(new OrderBookLimitOrder(10, 101, OrderBookSide.Sell, 0));
         assertEquals(2, book.Asks.size());
-        var cancelled = book.cancelOrder(res1.restingOrder().id());
+        var cancelledOrder = book.cancelOrder(res1.restingOrder().id());
         assertEquals(1, book.Asks.size());
-        assertTrue(cancelled);
+        assertNotNull(cancelledOrder);
     }
 
     @Test
@@ -68,9 +68,9 @@ public class OrderBookTests {
         var res1 = book.processOrder(new OrderBookLimitOrder(10, 100, OrderBookSide.Buy, 0));
         book.processOrder(new OrderBookLimitOrder(10, 99, OrderBookSide.Buy, 0));
         assertEquals(2, book.Bids.size());
-        var cancelled = book.cancelOrder(res1.restingOrder().id());
+        var cancelledOrder = book.cancelOrder(res1.restingOrder().id());
         assertEquals(1, book.Bids.size());
-        assertTrue(cancelled);
+        assertNotNull(cancelledOrder);
     }
 
     @Test

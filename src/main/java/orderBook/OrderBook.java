@@ -21,19 +21,21 @@ public class OrderBook {
         return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Partial, executionResult.trades(), restingOrder);
     }
 
-    public boolean cancelOrder(long id) {
-        return cancelOrder(id, Bids) || cancelOrder(id, Asks);
+    public OrderBookEntry cancelOrder(long id) {
+        var cancelledOrder = cancelOrder(id, Bids);
+        if (cancelledOrder == null)
+            cancelledOrder = cancelOrder(id, Asks);
+        return cancelledOrder;
     }
 
-    private static boolean cancelOrder(long id, ArrayList<OrderBookEntry> entries) {
+    private static OrderBookEntry cancelOrder(long id, ArrayList<OrderBookEntry> entries) {
         for (int i = 0; i < entries.size(); i++) {
             var entry = entries.get(i);
             if (entry.id() == id) {
-                entries.remove(i);
-                return true;
+                return entries.remove(i);
             }
         }
-        return false;
+        return null;
     }
 
     private boolean containsCross(ArrayList<OrderBookEntry> entries, OrderBookLimitOrder order) {

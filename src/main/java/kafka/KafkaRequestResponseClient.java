@@ -1,7 +1,7 @@
 package kafka;
 
-import Utils.AutoResetEvent;
-import Utils.UuidHelper;
+import utils.AutoResetEvent;
+import utils.UuidHelper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -23,9 +23,9 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
     private final ResponseWatcher responseWatcher = new ResponseWatcher();
     public final long timeout = 10_000;
 
-    public KafkaRequestResponseClient(String namespace, Properties props) {
-        this.namespace = namespace;
-        this.props = props;
+    public KafkaRequestResponseClient(KafkaConfigurationProvider kafkaConfigurationProvider) {
+        this.namespace =  kafkaConfigurationProvider.environmentName;
+        this.props = kafkaConfigurationProvider.buildProps();
         this.producer = new KafkaProducer<TKey, TRequest>(props);
     }
 

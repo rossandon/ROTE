@@ -1,4 +1,4 @@
-package Utils;
+package utils;
 
 public class AutoResetEvent {
     private final Object monitor = new Object();

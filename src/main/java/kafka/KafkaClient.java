@@ -1,12 +1,10 @@
 package kafka;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Header;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import java.time.Duration;
 import java.util.List;
@@ -18,9 +16,9 @@ public class KafkaClient implements AutoCloseable {
     private final Properties props;
     private final KafkaProducer producer;
 
-    public KafkaClient(String namespace, Properties props) {
-        this.namespace = namespace;
-        this.props = props;
+    public KafkaClient(KafkaConfigurationProvider kafkaConfigurationProvider) {
+        this.namespace = kafkaConfigurationProvider.environmentName;
+        this.props = kafkaConfigurationProvider.buildProps();
         this.producer = new KafkaProducer<>(props);
     }
 
