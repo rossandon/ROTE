@@ -1,12 +1,12 @@
-import kafka.KafkaClient;
-import kafka.KafkaConfigurationProvider;
-import kafka.KafkaRequestResponseClient;
-import referential.InstrumentInventory;
-import tradingEngine.Account;
-import referential.Asset;
-import referential.Instrument;
-
-import java.util.Properties;
+import ROTE.RoteService;
+import ROTE.kafka.KafkaClient;
+import ROTE.kafka.KafkaConfigurationProvider;
+import ROTE.kafka.KafkaRequestResponseClient;
+import ROTE.referential.InstrumentInventory;
+import ROTE.tradingEngine.Account;
+import ROTE.referential.Asset;
+import ROTE.referential.Instrument;
+import org.springframework.context.ApplicationContext;
 
 public class TestHelpers {
     public static final Asset USD = new Asset("USD");
@@ -15,28 +15,15 @@ public class TestHelpers {
     public static Account testAccount2 = new Account(1);
     public static final Instrument SPYInst = new Instrument(SPY, USD);
 
-    public static InstrumentInventory GetInventory() {
-        var inventory = new InstrumentInventory();
+    public static InstrumentInventory ConfigureInventory(InstrumentInventory inventory) {
         inventory.addInstrument("SPY", SPYInst);
         return inventory;
     }
 
-    public static final String KafkaTestHost = "localhost:9092";
-
-    public static KafkaConfigurationProvider getKafkaConfiguration(String groupId, String namespace) {
-        var provider = new KafkaConfigurationProvider();
-        provider.environmentName = namespace;
-        provider.groupId = groupId;
-        provider.kafkaTargetHost = KafkaTestHost;
-        provider.fromStart = true;
-        return provider;
-    }
-
-    public static <TKey, TValue> KafkaClient getKafkaClient(String groupId, String namespace) {
-        return new KafkaClient(getKafkaConfiguration(groupId, namespace));
-    }
-
-    public static <TKey, TRequest, TResponse> KafkaRequestResponseClient<TKey, TRequest, TResponse> getKafkaRequestResponseClient(String groupId, String namespace) {
-        return new KafkaRequestResponseClient<>(getKafkaConfiguration(groupId, namespace));
+    public static ApplicationContext createEnvironment() {
+        var context = RoteService.create();
+        var instrumentInventory = context.getBean(InstrumentInventory.class);
+        ConfigureInventory(instrumentInventory);
+        return context;
     }
 }

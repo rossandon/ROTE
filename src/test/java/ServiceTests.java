@@ -1,21 +1,21 @@
-import kafka.KafkaClient;
-import kafka.KafkaRequestResponseClient;
-import orderBook.OrderBookSide;
+import ROTE.kafka.KafkaClient;
+import ROTE.kafka.KafkaRequestResponseClient;
+import ROTE.orderBook.OrderBookSide;
+import ROTE.service.TradingEngineServiceConsts;
+import ROTE.service.TradingEngineServiceRequest;
+import ROTE.service.TradingEngineServiceResponse;
+import ROTE.service.TradingEngineStreamingService;
+import ROTE.tradingEngine.LimitOrderResultStatus;
 import org.junit.jupiter.api.Test;
-import service.*;
-import tradingEngine.LimitOrderResultStatus;
-import tradingEngine.TradingEngine;
-import tradingEngine.TradingEngineContext;
-import utils.UuidHelper;
+import org.springframework.context.ApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ServiceTests implements AutoCloseable {
-    private final String namespace = UuidHelper.GetNewUuid();
-    private final TradingEngine tradingEngine = new TradingEngine(new TradingEngineContext());
-    private final KafkaRequestResponseClient<String, TradingEngineServiceRequest, TradingEngineServiceResponse> testClient = TestHelpers.getKafkaRequestResponseClient("test", namespace);
-    private final KafkaClient engineClient = TestHelpers.getKafkaClient("engine", namespace);
-    private final TradingEngineStreamingService tradingEngineStreamingService = new TradingEngineStreamingService(engineClient, tradingEngine, TestHelpers.GetInventory());
+    private final ApplicationContext context = TestHelpers.createEnvironment();
+    private final KafkaClient engineClient = context.getBean(KafkaClient.class);
+    private final KafkaRequestResponseClient<String, TradingEngineServiceRequest, TradingEngineServiceResponse> testClient = context.getBean(KafkaRequestResponseClient.class);
+    private final TradingEngineStreamingService tradingEngineStreamingService = context.getBean(TradingEngineStreamingService.class);
 
     public ServiceTests() {
         var tradingEngineThread = new Thread(tradingEngineStreamingService);
