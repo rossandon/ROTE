@@ -25,6 +25,8 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
     private final ResponseWatcher responseWatcher = new ResponseWatcher();
     public final long timeout = 10_000;
 
+    private boolean closed;
+
     public KafkaRequestResponseClient(KafkaConfigurationProvider kafkaConfigurationProvider) {
         this.namespace =  kafkaConfigurationProvider.getEnvironmentName();
         this.props = kafkaConfigurationProvider.buildProps();
@@ -35,7 +37,7 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
         try (var consumer = new KafkaConsumer<TKey, TResponse>(props)) {
             consumer.subscribe(Arrays.asList(consumerId));
 
-            while (true) {
+            while (!closed) {
                 var results = consumer.poll(Duration.ofSeconds(1));
                 for (var result : results) {
                     responseWatcher.handle(result);
@@ -67,6 +69,7 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
     @Override
     public void close() {
         producer.close();
+        closed = true;
     }
 
     private class ResponseWatcher implements IKafkaConsumerHandler<TKey, TResponse> {

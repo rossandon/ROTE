@@ -17,6 +17,7 @@ public class KafkaClient implements AutoCloseable {
     private final String namespace;
     private final Properties props;
     private final KafkaProducer producer;
+    private boolean closed;
 
     public KafkaClient(KafkaConfigurationProvider kafkaConfigurationProvider) {
         this.namespace = kafkaConfigurationProvider.getEnvironmentName();
@@ -28,7 +29,7 @@ public class KafkaClient implements AutoCloseable {
         try (var consumer = new KafkaConsumer<TKey, TValue>(props)) {
             consumer.subscribe(KafkaHelpers.getNamespacedTopics(topics, namespace));
 
-            while (true) {
+            while (!closed) {
                 var results = consumer.poll(Duration.ofSeconds(1));
                 for (var result : results) {
                     handler.handle(result);
@@ -54,6 +55,7 @@ public class KafkaClient implements AutoCloseable {
     @Override
     public void close() {
         producer.close();
+        closed = true;
     }
 
     public record KafkaHeader(String key, byte[] value) implements Header {

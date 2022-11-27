@@ -1,17 +1,15 @@
 package ROTE.tradingEngine;
 
 import ROTE.orderBook.OrderBook;
-import org.springframework.stereotype.Component;
 import ROTE.referential.Asset;
 import ROTE.referential.Instrument;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
 public class TradingEngineContext {
-    public final HashMap<Long, HashMap<Asset, Long>> balances;
-    public final HashMap<Instrument, InstrumentOrderBook> orderBooks;
+    public final HashMap<Long, HashMap<Integer, Long>> balances;
+    public final HashMap<Integer, InstrumentOrderBook> orderBooks;
 
     public TradingEngineContext() {
         balances = new HashMap<>();
@@ -19,12 +17,12 @@ public class TradingEngineContext {
     }
 
     public InstrumentOrderBook ensureOrderBook(Instrument instrument) {
-        var existingBook = orderBooks.get(instrument);
+        var existingBook = orderBooks.get(instrument.id());
         if (existingBook != null) {
             return existingBook;
         }
         var newBook = new InstrumentOrderBook(instrument, new OrderBook());
-        orderBooks.put(instrument, newBook);
+        orderBooks.put(instrument.id(), newBook);
         return newBook;
     }
 
@@ -34,8 +32,8 @@ public class TradingEngineContext {
     public Long getBalance(Long accountId, Asset asset) {
         if (balances.containsKey(accountId)) {
             var balancesByAsset = balances.get(accountId);
-            if (balancesByAsset.containsKey(asset)) {
-                return balancesByAsset.get(asset);
+            if (balancesByAsset.containsKey(asset.id())) {
+                return balancesByAsset.get(asset.id());
             }
         }
         return 0L;
@@ -48,14 +46,14 @@ public class TradingEngineContext {
     public void adjustBalance(Long accountId, Asset asset, long adjustment) {
         if (balances.containsKey(accountId)) {
             var balancesByAsset = balances.get(accountId);
-            if (balancesByAsset.containsKey(asset)) {
-                var balance = balancesByAsset.get(asset);
-                balancesByAsset.put(asset, balance + adjustment);
+            if (balancesByAsset.containsKey(asset.id())) {
+                var balance = balancesByAsset.get(asset.id());
+                balancesByAsset.put(asset.id(), balance + adjustment);
             } else {
-                balancesByAsset.put(asset, adjustment);
+                balancesByAsset.put(asset.id(), adjustment);
             }
         } else {
-            balances.put(accountId, new HashMap<>(Map.of(asset, adjustment)));
+            balances.put(accountId, new HashMap<>(Map.of(asset.id(), adjustment)));
         }
     }
 }

@@ -2,7 +2,7 @@ version: "3.9"
 services:
   zookeeper:
     image: 'bitnami/zookeeper:latest'
-    tmpfs: "/datalog"
+    tmpfs: "/bitnami"
     ports:
       - '2181:2181'
     environment:

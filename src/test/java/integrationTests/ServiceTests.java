@@ -1,27 +1,17 @@
-import ROTE.kafka.KafkaClient;
-import ROTE.kafka.KafkaRequestResponseClient;
+package integrationTests;
+
+import helpers.IntegrationTest;
 import ROTE.orderBook.OrderBookSide;
 import ROTE.service.TradingEngineServiceConsts;
 import ROTE.service.TradingEngineServiceRequest;
 import ROTE.service.TradingEngineServiceResponse;
-import ROTE.service.TradingEngineStreamingService;
 import ROTE.tradingEngine.LimitOrderResultStatus;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.ApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ServiceTests implements AutoCloseable {
-    private final ApplicationContext context = TestHelpers.createEnvironment();
-    private final KafkaClient engineClient = context.getBean(KafkaClient.class);
-    private final KafkaRequestResponseClient<String, TradingEngineServiceRequest, TradingEngineServiceResponse> testClient = context.getBean(KafkaRequestResponseClient.class);
-    private final TradingEngineStreamingService tradingEngineStreamingService = context.getBean(TradingEngineStreamingService.class);
-
+public class ServiceTests extends IntegrationTest {
     public ServiceTests() {
-        var tradingEngineThread = new Thread(tradingEngineStreamingService);
-        tradingEngineThread.start();
-        var testClientThread = new Thread(testClient);
-        testClientThread.start();
     }
 
     @Test
@@ -80,11 +70,5 @@ public class ServiceTests implements AutoCloseable {
 
     private TradingEngineServiceResponse send(TradingEngineServiceRequest request) throws Exception {
         return testClient.send(TradingEngineServiceConsts.RequestTopic, "", request);
-    }
-
-    @Override
-    public void close() throws Exception {
-        testClient.close();
-        engineClient.close();
     }
 }
