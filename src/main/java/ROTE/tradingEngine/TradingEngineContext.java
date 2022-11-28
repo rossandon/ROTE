@@ -26,10 +26,10 @@ public class TradingEngineContext {
         return newBook;
     }
 
-    public Long getBalance(Account account, Asset asset) {
+    public long getBalance(Account account, Asset asset) {
         return getBalance(account.accountId(), asset);
     }
-    public Long getBalance(Long accountId, Asset asset) {
+    public long getBalance(long accountId, Asset asset) {
         if (balances.containsKey(accountId)) {
             var balancesByAsset = balances.get(accountId);
             if (balancesByAsset.containsKey(asset.id())) {
@@ -43,7 +43,7 @@ public class TradingEngineContext {
         adjustBalance(account.accountId(), asset, adjustment);
     }
 
-    public void adjustBalance(Long accountId, Asset asset, long adjustment) {
+    public void adjustBalance(long accountId, Asset asset, long adjustment) {
         if (balances.containsKey(accountId)) {
             var balancesByAsset = balances.get(accountId);
             if (balancesByAsset.containsKey(asset.id())) {

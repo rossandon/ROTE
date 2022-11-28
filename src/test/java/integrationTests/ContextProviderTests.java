@@ -1,6 +1,5 @@
 package integrationTests;
 
-import ROTE.orderBook.OrderBookSide;
 import ROTE.service.TradingEngineServiceConsts;
 import ROTE.service.TradingEngineServiceRequest;
 import ROTE.tradingEngine.TradingEngineContext;

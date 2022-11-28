@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 
 public class TradingEngineContextSerializer {
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static TradingEngineContext deserialize(byte[] bytes) throws IOException {
         return objectMapper.readValue(bytes, TradingEngineContext.class);

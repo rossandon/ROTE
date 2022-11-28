@@ -1,9 +1,6 @@
 package ROTE.kafka;
 
-import org.apache.kafka.common.Uuid;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.stereotype.Component;
 import ROTE.utils.UuidHelper;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
@@ -19,7 +16,7 @@ public class KafkaConfigurationProvider {
     private String fromStart;
 
     public String getEnvironmentName() {
-        if (environmentName == null && uniqueNamespace != null && Boolean.parseBoolean(uniqueNamespace)) {
+        if (environmentName == null && Boolean.parseBoolean(uniqueNamespace)) {
             environmentName = UuidHelper.GetNewUuid();
         }
 

@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import ROTE.referential.ReferentialInventory;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,13 +20,13 @@ import java.util.List;
 @Component
 public class TradingEngineStreamingService implements Runnable, Closeable {
     private static final Logger log = Logger.getLogger(TradingEngineStreamingService.class);
-    private final KafkaClient client;
+    private final KafkaClient<String, TradingEngineServiceResponse> client;
     private final TradingEngine tradingEngine;
     private final ReferentialInventory referentialInventory;
     private final ITradingEngineContextPersistor tradingContextPersistor;
     private final HashMap<TradingEngineServiceRequestType, ITradingEngineRequestHandler> handlers = new HashMap<>();
 
-    public TradingEngineStreamingService(KafkaClient client, TradingEngine tradingEngine, ReferentialInventory referentialInventory, ITradingEngineContextPersistor tradingContextPersistor) {
+    public TradingEngineStreamingService(KafkaClient<String, TradingEngineServiceResponse> client, TradingEngine tradingEngine, ReferentialInventory referentialInventory, ITradingEngineContextPersistor tradingContextPersistor) {
         this.client = client;
         this.tradingEngine = tradingEngine;
         this.referentialInventory = referentialInventory;
@@ -96,7 +95,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         client.close();
     }
 }

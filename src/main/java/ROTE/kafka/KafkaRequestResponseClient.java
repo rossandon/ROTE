@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,12 +31,12 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
     public KafkaRequestResponseClient(KafkaConfigurationProvider kafkaConfigurationProvider) {
         this.namespace =  kafkaConfigurationProvider.getEnvironmentName();
         this.props = kafkaConfigurationProvider.buildProps();
-        this.producer = new KafkaProducer<TKey, TRequest>(props);
+        this.producer = new KafkaProducer<>(props);
     }
 
     public void run() {
         try (var consumer = new KafkaConsumer<TKey, TResponse>(props)) {
-            consumer.subscribe(Arrays.asList(consumerId));
+            consumer.subscribe(List.of(consumerId));
 
             while (!closed) {
                 var results = consumer.poll(Duration.ofSeconds(1));
@@ -54,7 +55,7 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
             responseRecordContainer.set(r);
             autoResetEvent.set();
         })) {
-            var requestRecord = new ProducerRecord<TKey, TRequest>(KafkaHelpers.getNamespacedTopic(topic, namespace), key, request);
+            var requestRecord = new ProducerRecord<>(KafkaHelpers.getNamespacedTopic(topic, namespace), key, request);
             requestRecord.headers().add(KafkaConsts.ResponseIdHeader, requestId.getBytes(StandardCharsets.UTF_8));
             requestRecord.headers().add(KafkaConsts.ResponseTopicHeader, consumerId.getBytes(StandardCharsets.UTF_8));
             producer.send(requestRecord);

@@ -2,7 +2,7 @@ package ROTE.utils;
 
 public class AutoResetEvent {
     private final Object monitor = new Object();
-    private volatile boolean open = false;
+    private volatile boolean open;
 
     public AutoResetEvent(boolean open) {
         this.open = open;
@@ -10,7 +10,7 @@ public class AutoResetEvent {
 
     public void waitOne(long timeoutInMs) throws InterruptedException {
         synchronized (monitor) {
-            while (open == false) {
+            while (!open) {
                 monitor.wait(timeoutInMs);
             }
             open = false; // close for other

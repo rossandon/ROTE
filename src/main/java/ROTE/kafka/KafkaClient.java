@@ -13,10 +13,11 @@ import java.util.Properties;
 import java.util.concurrent.Future;
 
 @Component
-public class KafkaClient implements AutoCloseable {
+public class KafkaClient <TProducerKey, TProducerValue> implements AutoCloseable {
     private final String namespace;
     private final Properties props;
-    private final KafkaProducer producer;
+    private final KafkaProducer<TProducerKey, TProducerValue> producer;
+
     private boolean closed;
 
     public KafkaClient(KafkaConfigurationProvider kafkaConfigurationProvider) {
@@ -38,7 +39,7 @@ public class KafkaClient implements AutoCloseable {
         }
     }
 
-    public <TKey, TValue> Future<RecordMetadata> produce(String topic, TKey key, TValue value, Iterable<Header> headers, Boolean addNamespace) {
+    public Future<RecordMetadata> produce(String topic, TProducerKey key, TProducerValue value, Iterable<Header> headers, Boolean addNamespace) {
         var record = new ProducerRecord<>(addNamespace ? KafkaHelpers.getNamespacedTopic(topic, namespace) : topic, key, value);
         for (var header : headers) {
             record.headers().add(header);

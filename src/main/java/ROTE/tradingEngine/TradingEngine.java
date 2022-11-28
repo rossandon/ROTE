@@ -24,7 +24,7 @@ public class TradingEngine {
         context.adjustBalance(account, asset, balance);
     }
 
-    public Long getBalance(Long accountId, Asset asset) {
+    public long getBalance(long accountId, Asset asset) {
         return context.getBalance(accountId, asset);
     }
 
