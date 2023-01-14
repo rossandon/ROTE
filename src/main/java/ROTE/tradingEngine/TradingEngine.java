@@ -4,28 +4,30 @@ import ROTE.orderBook.OrderBookLimitOrderResult;
 import ROTE.orderBook.OrderBookLimitOrderResultStatus;
 import ROTE.orderBook.OrderBookSide;
 import ROTE.orderBook.OrderBookTrade;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import ROTE.referential.Asset;
 import ROTE.referential.Instrument;
 
 @Component
 public class TradingEngine {
-    private final TradingEngineContext context;
+    private final TradingEngineContextInstance tradingEngineContextInstance;
 
-    public TradingEngineContext getContext() {
-        return context;
+    public TradingEngine(TradingEngineContext tradingEngineContext) {
+        this.tradingEngineContextInstance = new TradingEngineContextInstance(tradingEngineContext);
     }
 
-    public TradingEngine(TradingEngineContext context) {
-        this.context = context;
+    @Autowired
+    public TradingEngine(TradingEngineContextInstance tradingEngineContextInstance) {
+        this.tradingEngineContextInstance = tradingEngineContextInstance;
     }
 
     public void adjustBalance(Account account, Asset asset, long balance) {
-        context.adjustBalance(account, asset, balance);
+        getContext().adjustBalance(account, asset, balance);
     }
 
     public long getBalance(long accountId, Asset asset) {
-        return context.getBalance(accountId, asset);
+        return getContext().getBalance(accountId, asset);
     }
 
     public LimitOrderResult limitOrder(LimitOrder order) {
@@ -33,7 +35,7 @@ public class TradingEngine {
         if (!hasFunding)
             return new LimitOrderResult(LimitOrderResultStatus.Rejected, null);
 
-        var book = context.ensureOrderBook(order.instrument());
+        var book = getContext().ensureOrderBook(order.instrument());
         var result = book.orderBook().processOrder(order.limitOrder());
         if (result.status() == OrderBookLimitOrderResultStatus.Rejected) {
             refundFunding(order);
@@ -48,7 +50,7 @@ public class TradingEngine {
     }
 
     public boolean cancel(Account account, Instrument instrument, long orderId) {
-        var cancelledOrder = context.ensureOrderBook(instrument).orderBook().cancelOrder(orderId);
+        var cancelledOrder = getContext().ensureOrderBook(instrument).orderBook().cancelOrder(orderId);
 
         if (cancelledOrder != null) {
             adjustBalance(account, instrument.quoteAsset(), cancelledOrder.fundingSize());
@@ -66,23 +68,27 @@ public class TradingEngine {
 
     private void bookTrade(OrderBookTrade trade, Instrument instrument) {
         var m = trade.takerSide() == OrderBookSide.Buy ? 1 : -1;
-        context.adjustBalance(trade.takerAccountId(), instrument.baseAsset(), trade.size() * m);
-        context.adjustBalance(trade.makerAccountId(), instrument.baseAsset(), trade.size() * -1 * m);
-        context.adjustBalance(trade.takerAccountId(), instrument.quoteAsset(), trade.takerAccountId() * m * -1);
+        getContext().adjustBalance(trade.takerAccountId(), instrument.baseAsset(), trade.size() * m);
+        getContext().adjustBalance(trade.makerAccountId(), instrument.baseAsset(), trade.size() * -1 * m);
+        getContext().adjustBalance(trade.takerAccountId(), instrument.quoteAsset(), trade.takerAccountId() * m * -1);
     }
 
     private void refundFunding(LimitOrder order) {
         var requiredFunds = order.getRequiredFunds();
-        context.adjustBalance(order.account(), order.instrument().quoteAsset(), requiredFunds);
+        getContext().adjustBalance(order.account(), order.instrument().quoteAsset(), requiredFunds);
     }
 
     private boolean tryReserveFunding(LimitOrder order) {
-        var funds = context.getBalance(order.account(), order.instrument().quoteAsset());
+        var funds = getContext().getBalance(order.account(), order.instrument().quoteAsset());
         var requiredFunds = order.getRequiredFunds();
         if (funds >= requiredFunds) {
-            context.adjustBalance(order.account(), order.instrument().quoteAsset(), requiredFunds * -1);
+            getContext().adjustBalance(order.account(), order.instrument().quoteAsset(), requiredFunds * -1);
             return true;
         }
         return false;
+    }
+
+    private TradingEngineContext getContext() {
+        return tradingEngineContextInstance.getContext();
     }
 }

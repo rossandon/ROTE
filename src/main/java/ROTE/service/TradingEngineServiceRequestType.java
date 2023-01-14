@@ -5,5 +5,4 @@ public enum TradingEngineServiceRequestType {
     AdjustBalance,
     GetBalance,
     Cancel,
-    Snapshot
 }

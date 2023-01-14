@@ -1,12 +1,9 @@
 package unitTests;
 
+import ROTE.tradingEngine.*;
 import helpers.TestHelpers;
 import ROTE.orderBook.OrderBookSide;
 import org.junit.jupiter.api.Test;
-import ROTE.tradingEngine.LimitOrder;
-import ROTE.tradingEngine.LimitOrderResultStatus;
-import ROTE.tradingEngine.TradingEngine;
-import ROTE.tradingEngine.TradingEngineContext;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

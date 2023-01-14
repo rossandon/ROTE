@@ -1,5 +1,6 @@
 package ROTE.kafka;
 
+import ROTE.utils.ProcessingQueue;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -17,6 +18,7 @@ public class KafkaClient <TProducerKey, TProducerValue> implements AutoCloseable
     private final String namespace;
     private final Properties props;
     private final KafkaProducer<TProducerKey, TProducerValue> producer;
+    private final ProcessingQueue controlMessageQueue = new ProcessingQueue();
 
     private boolean closed;
 
@@ -26,7 +28,7 @@ public class KafkaClient <TProducerKey, TProducerValue> implements AutoCloseable
         this.producer = new KafkaProducer<>(props);
     }
 
-    public <TKey, TValue> void consume(List<String> topics, IKafkaConsumerHandler<TKey, TValue> handler) {
+    public <TKey, TValue> void consume(List<String> topics, IKafkaConsumerHandler<TKey, TValue> handler, IKafkaControlMessageHandler controlMessageHandler) {
         try (var consumer = new KafkaConsumer<TKey, TValue>(props)) {
             consumer.subscribe(KafkaHelpers.getNamespacedTopics(topics, namespace));
 
@@ -34,6 +36,14 @@ public class KafkaClient <TProducerKey, TProducerValue> implements AutoCloseable
                 var results = consumer.poll(Duration.ofSeconds(1));
                 for (var result : results) {
                     handler.handle(result);
+                }
+
+                while (true)
+                {
+                    var item = controlMessageQueue.dequeue();
+                    if (item == null)
+                        break;
+                    controlMessageHandler.handle(item);
                 }
             }
         }
@@ -51,6 +61,10 @@ public class KafkaClient <TProducerKey, TProducerValue> implements AutoCloseable
                     else
                         System.out.printf("Produced event to topic %s: key = %-10s value = %s%n", topic, key, value);
                 });
+    }
+
+    public Future queueControlMessage(Object obj) {
+        return controlMessageQueue.queue(obj);
     }
 
     @Override

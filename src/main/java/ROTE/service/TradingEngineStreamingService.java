@@ -5,9 +5,12 @@ import ROTE.tradingEngine.LimitOrder;
 import ROTE.tradingEngine.TradingEngine;
 import ROTE.kafka.KafkaClient;
 import ROTE.kafka.KafkaConsts;
+import ROTE.tradingEngine.TradingEngineContextInstance;
+import ROTE.utils.ProcessingQueue;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.log4j.Logger;
+import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Component;
 import ROTE.referential.ReferentialInventory;
 
@@ -16,6 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 @Component
 public class TradingEngineStreamingService implements Runnable, Closeable {
@@ -23,29 +28,53 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     private final KafkaClient<String, TradingEngineServiceResponse> client;
     private final TradingEngine tradingEngine;
     private final ReferentialInventory referentialInventory;
+    private final TradingEngineContextInstance tradingEngineContextInstance;
     private final ITradingEngineContextPersistor tradingContextPersistor;
     private final HashMap<TradingEngineServiceRequestType, ITradingEngineRequestHandler> handlers = new HashMap<>();
 
-    public TradingEngineStreamingService(KafkaClient<String, TradingEngineServiceResponse> client, TradingEngine tradingEngine, ReferentialInventory referentialInventory, ITradingEngineContextPersistor tradingContextPersistor) {
+    public TradingEngineStreamingService(KafkaClient<String, TradingEngineServiceResponse> client,
+                                         TradingEngine tradingEngine, ReferentialInventory referentialInventory,
+                                         TradingEngineContextInstance tradingEngineContextInstance,
+                                         ITradingEngineContextPersistor tradingContextPersistor) {
         this.client = client;
         this.tradingEngine = tradingEngine;
         this.referentialInventory = referentialInventory;
+        this.tradingEngineContextInstance = tradingEngineContextInstance;
         this.tradingContextPersistor = tradingContextPersistor;
 
         handlers.put(TradingEngineServiceRequestType.GetBalance, this::handleGetBalanceRequest);
         handlers.put(TradingEngineServiceRequestType.LimitOrder, this::handleLimitOrderRequest);
         handlers.put(TradingEngineServiceRequestType.AdjustBalance, this::handleAdjustBalanceRequest);
         handlers.put(TradingEngineServiceRequestType.Cancel, this::handleCancelRequest);
-        handlers.put(TradingEngineServiceRequestType.Snapshot, this::handleSnapshot);
     }
 
     public void run() {
         log.info("Running trading engine service");
-        client.consume(Collections.singletonList(TradingEngineServiceConsts.RequestTopic), this::handle);
+        client.consume(Collections.singletonList(TradingEngineServiceConsts.RequestTopic), this::handleKafkaRecord, this::handleControlMessage);
         log.info("Stopped trading engine service");
     }
 
-    private void handle(ConsumerRecord<String, TradingEngineServiceRequest> record) {
+    public Future snapshot() {
+        return client.queueControlMessage(new TradingEngineServiceSnapshotRequest());
+    }
+
+    private void handleControlMessage(ProcessingQueue.ProcessingQueueItem o) {
+        try {
+            if (o.getObject() instanceof TradingEngineServiceSnapshotRequest) {
+                var context = tradingEngineContextInstance.getContext();
+                tradingContextPersistor.save(context);
+                o.setResult(true);
+            }
+            else
+                throw new Exception("Unknown control message type");
+        }
+        catch (Exception e) {
+            log.error("Failed to process control message", e);
+            o.setException(e);
+        }
+    }
+
+    private void handleKafkaRecord(ConsumerRecord<String, TradingEngineServiceRequest> record) {
         var request = record.value();
         var responseTopicBytes = record.headers().headers(KafkaConsts.ResponseTopicHeader).iterator().next().value();
         var responseIdBytes = record.headers().headers(KafkaConsts.ResponseIdHeader).iterator().next().value();
@@ -80,12 +109,6 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         var instrument = referentialInventory.lookupInstrument(request.instrumentCode());
         var isCancelled = tradingEngine.cancel(new Account(request.accountId()), instrument, request.orderId());
         return new TradingEngineServiceResponse(new CancelOrderResult(isCancelled));
-    }
-
-    private TradingEngineServiceResponse handleSnapshot(TradingEngineServiceRequest request) {
-        var context = tradingEngine.getContext();
-        tradingContextPersistor.save(context);
-        return new TradingEngineServiceResponse();
     }
 
     private void sendResponse(String responseTopic, String responseId, TradingEngineServiceResponse response) {

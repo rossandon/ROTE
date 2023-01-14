@@ -12,3 +12,4 @@ Kafka is used in the place of the "Disruptor".
 - Deployment via AWS CDK (Cloud Development Kit)
 - Frontend to HTTP API & market data (see order book)
 - Performance testing
+- Investigate transactionality, idempotency & consistency

@@ -67,8 +67,4 @@ public class ServiceTests extends IntegrationTest {
         assertEquals(LimitOrderResultStatus.Ok, response.limitOrderResult().type());
         assertEquals(1, response.limitOrderResult().result().trades().size());
     }
-
-    private TradingEngineServiceResponse send(TradingEngineServiceRequest request) throws Exception {
-        return testClient.send(TradingEngineServiceConsts.RequestTopic, "", request);
-    }
 }

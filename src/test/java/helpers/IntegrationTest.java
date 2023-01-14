@@ -2,6 +2,7 @@ package helpers;
 
 import ROTE.RoteService;
 import ROTE.kafka.KafkaRequestResponseClient;
+import ROTE.service.TradingEngineServiceConsts;
 import ROTE.service.TradingEngineServiceRequest;
 import ROTE.service.TradingEngineServiceResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,4 +16,9 @@ import org.springframework.test.annotation.DirtiesContext;
 public class IntegrationTest {
     @Autowired
     protected KafkaRequestResponseClient<String, TradingEngineServiceRequest, TradingEngineServiceResponse> testClient;
+
+
+    protected TradingEngineServiceResponse send(TradingEngineServiceRequest request) throws Exception {
+        return testClient.send(TradingEngineServiceConsts.RequestTopic, "", request);
+    }
 }
