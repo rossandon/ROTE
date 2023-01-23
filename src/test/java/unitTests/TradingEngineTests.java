@@ -1,8 +1,8 @@
 package unitTests;
 
-import ROTE.tradingEngine.*;
+import roteService.tradingEngine.*;
 import helpers.TestHelpers;
-import ROTE.orderBook.OrderBookSide;
+import roteService.orderBook.OrderBookSide;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

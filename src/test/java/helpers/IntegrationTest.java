@@ -1,10 +1,10 @@
 package helpers;
 
-import ROTE.RoteService;
-import ROTE.kafka.KafkaRequestResponseClient;
-import ROTE.service.TradingEngineServiceConsts;
-import ROTE.service.TradingEngineServiceRequest;
-import ROTE.service.TradingEngineServiceResponse;
+import roteService.RoteService;
+import roteService.kafka.KafkaRequestResponseClient;
+import roteService.service.TradingEngineServiceConsts;
+import roteService.service.TradingEngineServiceRequest;
+import roteService.service.TradingEngineServiceResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;

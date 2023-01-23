@@ -1,8 +1,8 @@
 package integrationTests;
 
-import ROTE.service.TradingEngineServiceConsts;
-import ROTE.service.TradingEngineServiceRequest;
-import ROTE.tradingEngine.TradingEngineContext;
+import roteService.service.TradingEngineServiceConsts;
+import roteService.service.TradingEngineServiceRequest;
+import roteService.tradingEngine.TradingEngineContext;
 import helpers.AwsTradingEngineContextSeeder;
 import helpers.IntegrationTest;
 import helpers.TestHelpers;

@@ -1,8 +1,8 @@
 package helpers;
 
-import ROTE.tradingEngine.TradingEngineContext;
-import ROTE.tradingEngine.TradingEngineContextSerializer;
-import ROTE.utils.UuidHelper;
+import roteService.tradingEngine.TradingEngineContext;
+import roteService.tradingEngine.TradingEngineContextSerializer;
+import roteService.utils.UuidHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;

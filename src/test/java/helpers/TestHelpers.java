@@ -1,10 +1,10 @@
 package helpers;
 
-import ROTE.RoteService;
-import ROTE.referential.ReferentialInventory;
-import ROTE.tradingEngine.Account;
-import ROTE.referential.Asset;
-import ROTE.referential.Instrument;
+import roteService.RoteService;
+import roteService.referential.ReferentialInventory;
+import roteService.tradingEngine.Account;
+import roteService.referential.Asset;
+import roteService.referential.Instrument;
 import org.springframework.context.ApplicationContext;
 
 public class TestHelpers {

@@ -1,8 +1,8 @@
 package integrationTests;
 
-import ROTE.service.TradingEngineServiceRequest;
-import ROTE.service.TradingEngineStreamingService;
-import ROTE.tradingEngine.TradingEngineContextInstance;
+import roteService.service.TradingEngineServiceRequest;
+import roteService.service.TradingEngineStreamingService;
+import roteService.tradingEngine.TradingEngineContextInstance;
 import helpers.AwsTradingEngineContextSeeder;
 import helpers.IntegrationTest;
 import org.junit.jupiter.api.Test;

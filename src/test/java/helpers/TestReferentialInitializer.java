@@ -1,6 +1,6 @@
 package helpers;
 
-import ROTE.referential.ReferentialInventory;
+import roteService.referential.ReferentialInventory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;

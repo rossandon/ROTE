@@ -6,7 +6,8 @@ Kafka is used in the place of the "Disruptor".
 
 # Roadmap
 
-- Context persistence to S3
+- (DONE) Context persistence to S3
+
 - HTTP API layer to send orders, fetch balances, etc.
 - Market data feed via Kafka + WebSockets
 - Deployment via AWS CDK (Cloud Development Kit)
