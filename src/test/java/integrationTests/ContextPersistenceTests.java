@@ -1,6 +1,6 @@
 package integrationTests;
 
-import roteService.service.TradingEngineServiceRequest;
+import roteShared.service.TradingEngineServiceRequest;
 import roteService.service.TradingEngineStreamingService;
 import roteService.tradingEngine.TradingEngineContextInstance;
 import helpers.AwsTradingEngineContextSeeder;

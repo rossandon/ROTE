@@ -1,4 +1,4 @@
-package roteService.service;
+package roteShared.service;
 
 public enum TradingEngineServiceRequestType {
     LimitOrder,

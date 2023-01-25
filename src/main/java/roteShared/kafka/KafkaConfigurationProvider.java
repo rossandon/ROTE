@@ -1,7 +1,7 @@
-package roteService.kafka;
+package roteShared.kafka;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import roteService.utils.UuidHelper;
+import roteUtils.UuidHelper;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
@@ -83,6 +83,6 @@ public class KafkaConfigurationProvider {
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.springframework.kafka.support.serializer.JsonDeserializer");
         props.put("client.id", UuidHelper.GetNewUuid());
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "roteService.service");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "roteShared.service");
     }
 }

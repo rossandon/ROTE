@@ -1,6 +1,6 @@
 package roteService.service;
 
-import roteService.utils.RunnableExecutor;
+import roteUtils.RunnableExecutor;
 import org.springframework.stereotype.Component;
 
 @Component

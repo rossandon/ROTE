@@ -1,5 +1,8 @@
-package roteService.service;
+package roteShared.service;
 
+import roteService.service.CancelOrderResult;
+import roteService.service.GetBalanceResult;
+import roteService.service.GetBalancesResult;
 import roteService.tradingEngine.LimitOrderResult;
 
 public record TradingEngineServiceResponse(LimitOrderResult limitOrderResult, GetBalanceResult getBalanceResult,

@@ -1,4 +1,4 @@
-package roteService.kafka;
+package roteShared.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 

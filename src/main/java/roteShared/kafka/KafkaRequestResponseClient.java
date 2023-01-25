@@ -1,7 +1,7 @@
-package roteService.kafka;
+package roteShared.kafka;
 
-import roteService.utils.AutoResetEvent;
-import roteService.utils.UuidHelper;
+import roteUtils.AutoResetEvent;
+import roteUtils.UuidHelper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -16,7 +16,6 @@ import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Component
 public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Runnable, AutoCloseable {
     private final String namespace;
     private final Properties props;

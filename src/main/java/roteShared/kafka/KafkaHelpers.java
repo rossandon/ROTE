@@ -1,4 +1,4 @@
-package roteService.kafka;
+package roteShared.kafka;
 
 import java.util.Collection;
 import java.util.List;

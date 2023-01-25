@@ -2,8 +2,8 @@ package integrationTests;
 
 import helpers.IntegrationTest;
 import roteService.orderBook.OrderBookSide;
-import roteService.service.TradingEngineServiceConsts;
-import roteService.service.TradingEngineServiceRequest;
+import roteShared.service.TradingEngineServiceConsts;
+import roteShared.service.TradingEngineServiceRequest;
 import roteService.tradingEngine.LimitOrderResultStatus;
 import org.junit.jupiter.api.Test;
 

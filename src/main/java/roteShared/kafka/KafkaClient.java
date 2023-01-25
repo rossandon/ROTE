@@ -1,6 +1,6 @@
-package roteService.kafka;
+package roteShared.kafka;
 
-import roteService.utils.ProcessingQueue;
+import roteUtils.ProcessingQueue;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;

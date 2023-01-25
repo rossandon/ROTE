@@ -11,8 +11,8 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 
 @SpringBootApplication
-@ComponentScan
-@ConfigurationPropertiesScan
+@ComponentScan({"roteService", "roteShared"})
+@ConfigurationPropertiesScan({"roteService", "roteShared"})
 public class RoteService {
     public static ApplicationContext create() {
         var app = new SpringApplication(RoteService.class);

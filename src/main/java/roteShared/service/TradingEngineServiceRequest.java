@@ -1,4 +1,4 @@
-package roteService.service;
+package roteShared.service;
 
 import roteService.orderBook.OrderBookSide;
 
@@ -14,6 +14,10 @@ public record TradingEngineServiceRequest(TradingEngineServiceRequestType type, 
 
     public static TradingEngineServiceRequest getBalance(long accountId, String assetCode) {
         return new TradingEngineServiceRequest(TradingEngineServiceRequestType.GetBalance, 0, 0, accountId, null, OrderBookSide.Buy, assetCode, 0);
+    }
+
+    public static TradingEngineServiceRequest getBalances(long accountId) {
+        return new TradingEngineServiceRequest(TradingEngineServiceRequestType.GetBalance, 0, 0, accountId, null, OrderBookSide.Buy, null, 0);
     }
 
     public static TradingEngineServiceRequest cancel(long accountId, String instrumentCode, long orderId) {

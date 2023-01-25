@@ -1,6 +1,6 @@
-package roteService.kafka;
+package roteShared.kafka;
 
-import roteService.utils.ProcessingQueue;
+import roteUtils.ProcessingQueue;
 
 @FunctionalInterface
 public interface IKafkaControlMessageHandler {

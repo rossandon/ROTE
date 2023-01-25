@@ -2,7 +2,7 @@ package helpers;
 
 import roteService.tradingEngine.TradingEngineContext;
 import roteService.tradingEngine.TradingEngineContextSerializer;
-import roteService.utils.UuidHelper;
+import roteUtils.UuidHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;

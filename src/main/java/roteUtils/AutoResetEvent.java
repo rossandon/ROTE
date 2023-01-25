@@ -1,4 +1,4 @@
-package roteService.utils;
+package roteUtils;
 
 public class AutoResetEvent {
     private final Object monitor = new Object();

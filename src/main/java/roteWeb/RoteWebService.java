@@ -8,8 +8,8 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 
 @SpringBootApplication
-@ComponentScan
-@ConfigurationPropertiesScan
+@ComponentScan({"roteWeb", "roteShared.kafka"})
+@ConfigurationPropertiesScan({"roteWeb", "roteShared.kafka"})
 public class RoteWebService {
 
     @Bean

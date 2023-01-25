@@ -1,0 +1,8 @@
+package helpers;
+
+import roteShared.service.TradingEngineServiceRequest;
+import roteShared.service.TradingEngineServiceResponse;
+import roteShared.kafka.KafkaRequestResponseClientExecutor;
+
+public class TestKafkaRequestResponseClientExecutor extends KafkaRequestResponseClientExecutor<String, TradingEngineServiceRequest, TradingEngineServiceResponse> {
+}
