@@ -1,4 +1,4 @@
-package roteWeb;
+package webService;
 
 import org.springframework.boot.SpringApplication;
 

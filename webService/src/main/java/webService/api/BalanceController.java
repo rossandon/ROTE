@@ -1,4 +1,4 @@
-package roteWeb.api;
+package webService.api;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,12 +15,14 @@ public class BalanceController {
     @Autowired
     TradingEngineKafkaRequestResponseClient client;
 
-    @Autowired
-    Principal principal;
-
     @GetMapping("balances/list")
-    HashMap<String, Long> listBalances() throws Exception {
-        var resp = client.send(TradingEngineServiceRequest.getBalances(Long.parseLong(principal.getName())));
+    HashMap<String, Long> listBalances(Principal principal) throws Exception {
+        var resp = client.send(TradingEngineServiceRequest.getBalances(principal.getName().hashCode()));
         return resp.getBalancesResult().balances();
+    }
+
+    @GetMapping("balances/add")
+    void addBalances(Principal principal) throws Exception {
+        client.send(TradingEngineServiceRequest.adjustBalance(100, principal.getName().hashCode(), "USD"));
     }
 }

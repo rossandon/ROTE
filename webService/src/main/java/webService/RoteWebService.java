@@ -1,4 +1,4 @@
-package roteWeb;
+package webService;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
@@ -8,8 +8,8 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 
 @SpringBootApplication
-@ComponentScan({"roteWeb", "roteShared.kafka"})
-@ConfigurationPropertiesScan({"roteWeb", "roteShared.kafka"})
+@ComponentScan({"webService", "shared"})
+@ConfigurationPropertiesScan({"webService", "shared"})
 public class RoteWebService {
 
     @Bean
