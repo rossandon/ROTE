@@ -18,11 +18,13 @@ public class BalanceController {
     @GetMapping("balances/list")
     HashMap<String, Long> listBalances(Principal principal) throws Exception {
         var resp = client.send(TradingEngineServiceRequest.getBalances(principal.getName().hashCode()));
+        resp.assertOk();
         return resp.getBalancesResult().balances();
     }
 
     @GetMapping("balances/add")
     void addBalances(Principal principal) throws Exception {
-        client.send(TradingEngineServiceRequest.adjustBalance(100, principal.getName().hashCode(), "USD"));
+        var resp = client.send(TradingEngineServiceRequest.adjustBalance(100, principal.getName().hashCode(), "USD"));
+        resp.assertOk();
     }
 }

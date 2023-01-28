@@ -6,6 +6,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
+import shared.service.results.CancelOrderResult;
+import shared.service.results.GetBalanceResult;
+import shared.service.results.GetBalancesResult;
+import shared.service.results.TradingEngineErrorResult;
 import tradingEngineService.referential.ReferentialInventory;
 import shared.utils.ProcessingQueue;
 import shared.service.*;
@@ -46,6 +50,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         handlers.put(TradingEngineServiceRequestType.LimitOrder, this::handleLimitOrderRequest);
         handlers.put(TradingEngineServiceRequestType.AdjustBalance, this::handleAdjustBalanceRequest);
         handlers.put(TradingEngineServiceRequestType.Cancel, this::handleCancelRequest);
+        handlers.put(TradingEngineServiceRequestType.Error, this::handleErrorRequest);
     }
 
     public void run() {
@@ -54,7 +59,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         log.info("Stopped trading engine service");
     }
 
-    public Future snapshot() {
+    public Future<Object> snapshot() {
         return client.queueControlMessage(new TradingEngineServiceSnapshotRequest());
     }
 
@@ -64,8 +69,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
                 var context = tradingEngineContextInstance.getContext();
                 tradingContextPersistor.save(context);
                 o.setResult(true);
-            } else
-                throw new Exception("Unknown control message type");
+            } else throw new Exception("Unknown control message type");
         } catch (Exception e) {
             log.error("Failed to process control message", e);
             o.setException(e);
@@ -79,13 +83,21 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         var responseTopic = new String(responseTopicBytes, StandardCharsets.UTF_8);
         var responseId = new String(responseIdBytes, StandardCharsets.UTF_8);
 
-        var handler = handlers.get(request.type());
-        var response = handler.handle(request);
+        TradingEngineServiceResponse response;
+        try {
+            var handler = handlers.get(request.type());
+            response = handler.handle(request);
+        }
+        catch (Exception e) {
+            log.error("Failed to process request", e);
+            response = new TradingEngineServiceResponse(new TradingEngineErrorResult(e.getMessage()));
+        }
+
         sendResponse(responseTopic, responseId, response);
     }
 
-    private TradingEngineServiceResponse handleGetBalanceRequest(TradingEngineServiceRequest request) {
-        var asset = referentialInventory.lookupAsset(request.assetCode());
+    private TradingEngineServiceResponse handleGetBalanceRequest(TradingEngineServiceRequest request) throws Exception {
+        var asset = referentialInventory.lookupAssetOrThrow(request.assetCode());
         var balance = tradingEngine.getBalance(request.accountId(), asset);
         return new TradingEngineServiceResponse(new GetBalanceResult(balance));
     }
@@ -100,8 +112,8 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         return new TradingEngineServiceResponse(new GetBalancesResult(map));
     }
 
-    private TradingEngineServiceResponse handleAdjustBalanceRequest(TradingEngineServiceRequest request) {
-        var asset = referentialInventory.lookupAsset(request.assetCode());
+    private TradingEngineServiceResponse handleAdjustBalanceRequest(TradingEngineServiceRequest request) throws Exception {
+        var asset = referentialInventory.lookupAssetOrThrow(request.assetCode());
         tradingEngine.adjustBalance(new Account(request.accountId()), asset, request.amount());
         return new TradingEngineServiceResponse();
     }
@@ -117,6 +129,10 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         var instrument = referentialInventory.lookupInstrument(request.instrumentCode());
         var isCancelled = tradingEngine.cancel(new Account(request.accountId()), instrument, request.orderId());
         return new TradingEngineServiceResponse(new CancelOrderResult(isCancelled));
+    }
+
+    private TradingEngineServiceResponse handleErrorRequest(TradingEngineServiceRequest request) throws Exception {
+        throw new Exception("ping");
     }
 
     private void sendResponse(String responseTopic, String responseId, TradingEngineServiceResponse response) {

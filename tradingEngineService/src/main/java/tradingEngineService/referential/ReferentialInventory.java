@@ -1,6 +1,7 @@
 package tradingEngineService.referential;
 
 import org.springframework.stereotype.Component;
+import shared.service.TradingEngineServiceErrors;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -20,9 +21,9 @@ public class ReferentialInventory {
         return instrumentsByCode.get(code);
     }
 
-    public Asset lookupAsset(String code) {
+    public Asset lookupAssetOrThrow(String code) throws Exception {
         if (!assetsByCode.containsKey(code))
-            return null;
+            throw new Exception(TradingEngineServiceErrors.UnknownAsset);
         return assetsByCode.get(code);
     }
 

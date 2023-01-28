@@ -1,25 +1,38 @@
 package shared.service;
 
+import shared.service.results.*;
+
 public record TradingEngineServiceResponse(LimitOrderResult limitOrderResult, GetBalanceResult getBalanceResult,
-                                           CancelOrderResult cancelOrderResult, GetBalancesResult getBalancesResult) {
+                                           CancelOrderResult cancelOrderResult, GetBalancesResult getBalancesResult,
+                                           TradingEngineErrorResult tradingEngineErrorResult) {
 
     public TradingEngineServiceResponse(LimitOrderResult result) {
-        this(result, null, null, null);
+        this(result, null, null, null, null);
     }
 
     public TradingEngineServiceResponse(GetBalanceResult result) {
-        this(null, result, null, null);
+        this(null, result, null, null, null);
     }
 
     public TradingEngineServiceResponse(GetBalancesResult result) {
-        this(null, null, null, result);
+        this(null, null, null, result, null);
     }
 
     public TradingEngineServiceResponse(CancelOrderResult result) {
-        this(null, null, result, null);
+        this(null, null, result, null, null);
+    }
+
+    public TradingEngineServiceResponse(TradingEngineErrorResult result) {
+        this(null, null, null, null, result);
     }
 
     public TradingEngineServiceResponse() {
-        this(null, null, null, null);
+        this(null, null, null, null, null);
+    }
+
+    public void assertOk() throws Exception {
+        if (tradingEngineErrorResult == null)
+            return;
+        throw new Exception(tradingEngineErrorResult.message());
     }
 }

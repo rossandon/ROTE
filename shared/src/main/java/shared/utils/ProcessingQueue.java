@@ -10,23 +10,22 @@ public class ProcessingQueue {
 
     public ProcessingQueueItem dequeue() {
         var message = queue.poll();
-        if (message == null)
-            return null;
-        return (ProcessingQueueItem)message;
+        if (message == null) return null;
+        return (ProcessingQueueItem) message;
     }
 
-    public Future queue(Object obj) {
-        var future = new CompletableFuture();
+    public Future<Object> queue(Object obj) {
+        var future = new CompletableFuture<Object>();
         var item = new ProcessingQueueItem(future, obj);
         queue.add(item);
         return future;
     }
 
-    public class ProcessingQueueItem {
-        private final CompletableFuture future;
+    public static class ProcessingQueueItem {
+        private final CompletableFuture<Object> future;
         private final Object obj;
 
-        public ProcessingQueueItem(CompletableFuture future, Object obj) {
+        public ProcessingQueueItem(CompletableFuture<Object> future, Object obj) {
             this.future = future;
             this.obj = obj;
         }

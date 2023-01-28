@@ -5,5 +5,5 @@ import shared.service.TradingEngineServiceResponse;
 
 @FunctionalInterface
 public interface ITradingEngineRequestHandler {
-    TradingEngineServiceResponse handle(TradingEngineServiceRequest request);
+    TradingEngineServiceResponse handle(TradingEngineServiceRequest request) throws Exception;
 }

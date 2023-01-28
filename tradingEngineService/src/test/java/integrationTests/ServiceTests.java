@@ -5,6 +5,7 @@ import shared.orderBook.OrderBookSide;
 import shared.orderBook.LimitOrderResultStatus;
 import org.junit.jupiter.api.Test;
 import shared.service.TradingEngineServiceConsts;
+import shared.service.TradingEngineServiceErrors;
 import shared.service.TradingEngineServiceRequest;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -65,5 +66,17 @@ public class ServiceTests extends IntegrationTest {
         response = send(TradingEngineServiceRequest.limitOrder(1, 99, 2, "SPY", OrderBookSide.Sell));
         assertEquals(LimitOrderResultStatus.Ok, response.limitOrderResult().type());
         assertEquals(1, response.limitOrderResult().result().trades().size());
+    }
+
+    @Test
+    public void adjustBalanceUnknownAsset() throws Exception {
+        var resp = send(TradingEngineServiceRequest.adjustBalance(10, 1, "XYZ"));
+        assertEquals(TradingEngineServiceErrors.UnknownAsset, resp.tradingEngineErrorResult().message());
+    }
+
+    @Test
+    public void error() throws Exception {
+        var resp = send(TradingEngineServiceRequest.error());
+        assertEquals("ping", resp.tradingEngineErrorResult().message());
     }
 }

@@ -23,4 +23,8 @@ public record TradingEngineServiceRequest(TradingEngineServiceRequestType type, 
     public static TradingEngineServiceRequest cancel(long accountId, String instrumentCode, long orderId) {
         return new TradingEngineServiceRequest(TradingEngineServiceRequestType.Cancel, 0, 0, accountId, instrumentCode, OrderBookSide.Buy, null, orderId);
     }
+
+    public static TradingEngineServiceRequest error() {
+        return new TradingEngineServiceRequest(TradingEngineServiceRequestType.Error, 0, 0, 0, null, OrderBookSide.Buy, null, 0);
+    }
 }

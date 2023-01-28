@@ -1,4 +1,4 @@
-package shared.service;
+package shared.service.results;
 
 import shared.orderBook.LimitOrderResultStatus;
 import shared.orderBook.OrderBookLimitOrderResult;

@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import tradingEngineService.referential.Asset;
 import tradingEngineService.referential.Instrument;
 import shared.orderBook.*;
-import shared.service.LimitOrderResult;
+import shared.service.results.LimitOrderResult;
 
 @Component
 public class TradingEngine {
