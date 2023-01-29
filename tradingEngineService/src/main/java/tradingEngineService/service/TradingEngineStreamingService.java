@@ -46,7 +46,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         this.tradingContextPersistor = tradingContextPersistor;
 
         handlers.put(TradingEngineServiceRequestType.GetBalance, this::handleGetBalanceRequest);
-        handlers.put(TradingEngineServiceRequestType.GetBalances, this::handleGetBalanceRequest);
+        handlers.put(TradingEngineServiceRequestType.GetBalances, this::handleGetBalancesRequest);
         handlers.put(TradingEngineServiceRequestType.LimitOrder, this::handleLimitOrderRequest);
         handlers.put(TradingEngineServiceRequestType.AdjustBalance, this::handleAdjustBalanceRequest);
         handlers.put(TradingEngineServiceRequestType.Cancel, this::handleCancelRequest);
@@ -54,8 +54,9 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     }
 
     public void run() {
-        log.info("Running trading engine service");
-        client.consume(Collections.singletonList(TradingEngineServiceConsts.RequestTopic), this::handleKafkaRecord, this::handleControlMessage);
+        var startingOffset = tradingEngineContextInstance.getContext().sequence;
+        log.info("Running trading engine service; starting at offset '" + startingOffset + "'");
+        client.consume(TradingEngineServiceConsts.RequestTopic, startingOffset, this::handleKafkaRecord, this::handleControlMessage);
         log.info("Stopped trading engine service");
     }
 
@@ -85,10 +86,12 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
 
         TradingEngineServiceResponse response;
         try {
-            var handler = handlers.get(request.type());
+            var type = request.type();
+            log.info("Processing '" + type + "' request");
+            var handler = handlers.get(type);
             response = handler.handle(request);
-        }
-        catch (Exception e) {
+            tradingEngineContextInstance.getContext().sequence = record.offset();
+        } catch (Exception e) {
             log.error("Failed to process request", e);
             response = new TradingEngineServiceResponse(new TradingEngineErrorResult(e.getMessage()));
         }
@@ -112,7 +115,8 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         return new TradingEngineServiceResponse(new GetBalancesResult(map));
     }
 
-    private TradingEngineServiceResponse handleAdjustBalanceRequest(TradingEngineServiceRequest request) throws Exception {
+    private TradingEngineServiceResponse handleAdjustBalanceRequest(
+            TradingEngineServiceRequest request) throws Exception {
         var asset = referentialInventory.lookupAssetOrThrow(request.assetCode());
         tradingEngine.adjustBalance(new Account(request.accountId()), asset, request.amount());
         return new TradingEngineServiceResponse();

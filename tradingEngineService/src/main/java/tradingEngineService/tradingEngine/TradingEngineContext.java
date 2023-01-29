@@ -10,6 +10,7 @@ import java.util.Map;
 public class TradingEngineContext {
     public final HashMap<Long, HashMap<Integer, Long>> balances;
     public final HashMap<Integer, InstrumentOrderBook> orderBooks;
+    public long sequence;
 
     public TradingEngineContext() {
         balances = new HashMap<>();

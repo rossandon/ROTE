@@ -1,5 +1,6 @@
 package shared.kafka;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.log4j.Logger;
 import shared.utils.ProcessingQueue;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -10,6 +11,7 @@ import org.apache.kafka.common.header.Header;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Future;
@@ -31,11 +33,15 @@ public class KafkaClient<TProducerKey, TProducerValue> implements AutoCloseable 
         this.producer = new KafkaProducer<>(props);
     }
 
-    public <TKey, TValue> void consume(List<String> topics, IKafkaConsumerHandler<TKey, TValue> handler,
+    public <TKey, TValue> void consume(String topic, long offset, IKafkaConsumerHandler<TKey, TValue> handler,
                                        IKafkaControlMessageHandler controlMessageHandler) {
-        try (var consumer = new KafkaConsumer<TKey, TValue>(props)) {
-            consumer.subscribe(KafkaHelpers.getNamespacedTopics(topics, namespace));
-
+        var consumerProps = (Properties)props.clone();
+        consumerProps.put("enable.auto.commit", "false");
+        try (var consumer = new KafkaConsumer<TKey, TValue>(consumerProps)) {
+            var namespacedTopic = KafkaHelpers.getNamespacedTopic(topic, namespace);
+            var topicPartition = new TopicPartition(namespacedTopic, 0);
+            consumer.assign(Collections.singleton(topicPartition));
+            consumer.seek(topicPartition, offset);
             while (!closed) {
                 var results = consumer.poll(Duration.ofSeconds(1));
                 for (var result : results) {
