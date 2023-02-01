@@ -4,39 +4,34 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.log4j.Logger;
 import shared.utils.ProcessingQueue;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Header;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Future;
 
 @Component
-public class KafkaClient<TProducerKey, TProducerValue> implements AutoCloseable {
-    private static final Logger log = Logger.getLogger(KafkaClient.class);
+public class RoteKafkaConsumer implements AutoCloseable {
+    private static final Logger log = Logger.getLogger(RoteKafkaConsumer.class);
 
     private final String namespace;
     private final Properties props;
-    private final KafkaProducer<TProducerKey, TProducerValue> producer;
     private final ProcessingQueue controlMessageQueue = new ProcessingQueue();
 
     private boolean closed;
 
-    public KafkaClient(KafkaConfigurationProvider kafkaConfigurationProvider) {
+    public RoteKafkaConsumer(KafkaConfigurationProvider kafkaConfigurationProvider) {
         this.namespace = kafkaConfigurationProvider.getEnvironmentName();
         this.props = kafkaConfigurationProvider.buildProps();
-        this.producer = new KafkaProducer<>(props);
     }
 
-    public <TKey, TValue> void consume(String topic, long offset, IKafkaConsumerHandler<TKey, TValue> handler,
+    public <TKey, TValue> void consume(String topic, long offset, boolean autoCommit,
+                                       IKafkaConsumerHandler<TKey, TValue> handler,
                                        IKafkaControlMessageHandler controlMessageHandler) {
-        var consumerProps = (Properties)props.clone();
-        consumerProps.put("enable.auto.commit", "false");
+        var consumerProps = (Properties) props.clone();
+        consumerProps.put("enable.auto.commit", Boolean.toString(autoCommit).toLowerCase());
         try (var consumer = new KafkaConsumer<TKey, TValue>(consumerProps)) {
             var namespacedTopic = KafkaHelpers.getNamespacedTopic(topic, namespace);
             var topicPartition = new TopicPartition(namespacedTopic, 0);
@@ -57,18 +52,6 @@ public class KafkaClient<TProducerKey, TProducerValue> implements AutoCloseable 
         }
     }
 
-    public Future<RecordMetadata> produce(String topic, TProducerKey key, TProducerValue value,
-                                          Iterable<Header> headers, Boolean addNamespace) {
-        var record = new ProducerRecord<>(addNamespace ? KafkaHelpers.getNamespacedTopic(topic, namespace) : topic, key, value);
-        for (var header : headers) {
-            record.headers().add(header);
-        }
-        return producer.send(record, (event, ex) -> {
-            if (ex != null) {
-                log.error("Failed to send to Kafka", ex);
-            }
-        });
-    }
 
     public Future<Object> queueControlMessage(Object obj) {
         return controlMessageQueue.queue(obj);
@@ -76,7 +59,6 @@ public class KafkaClient<TProducerKey, TProducerValue> implements AutoCloseable 
 
     @Override
     public void close() {
-        producer.close();
         closed = true;
     }
 

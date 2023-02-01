@@ -2,6 +2,7 @@ package webService.api;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import shared.service.TradingEngineKafkaRequestResponseClient;
 import shared.service.TradingEngineServiceRequest;
@@ -23,8 +24,8 @@ public class BalanceController {
     }
 
     @GetMapping("balances/add")
-    void addBalances(Principal principal) throws Exception {
-        var resp = client.send(TradingEngineServiceRequest.adjustBalance(100, principal.getName().hashCode(), "USD"));
+    void addBalances(Principal principal, @RequestParam("assetCode") String assetCode, @RequestParam("amount") Long amount) throws Exception {
+        var resp = client.send(TradingEngineServiceRequest.adjustBalance(amount, principal.getName().hashCode(), assetCode));
         resp.assertOk();
     }
 }

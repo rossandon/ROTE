@@ -1,47 +1,34 @@
 package shared.kafka;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
 import shared.utils.AutoResetEvent;
 import shared.utils.UuidHelper;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Runnable, AutoCloseable {
-    private final String namespace;
-    private final Properties props;
+    private final RoteKafkaProducer<TKey, TRequest> kafkaProducer;
+    private final RoteKafkaConsumer kafkaConsumer;
     private final String consumerId = UuidHelper.GetNewUuid() + "-responses";
-    private final KafkaProducer<TKey, TRequest> producer;
     private final ResponseWatcher responseWatcher = new ResponseWatcher();
     public final long timeout = 10_000;
 
-    private boolean closed;
-
-    public KafkaRequestResponseClient(KafkaConfigurationProvider kafkaConfigurationProvider) {
-        this.namespace =  kafkaConfigurationProvider.getEnvironmentName();
-        this.props = kafkaConfigurationProvider.buildProps();
-        this.producer = new KafkaProducer<>(props);
+    public KafkaRequestResponseClient(RoteKafkaProducer<TKey, TRequest> kafkaProducer, RoteKafkaConsumer kafkaConsumer) {
+        this.kafkaProducer = kafkaProducer;
+        this.kafkaConsumer = kafkaConsumer;
     }
 
     public void run() {
-        try (var consumer = new KafkaConsumer<TKey, TResponse>(props)) {
-            consumer.subscribe(List.of(consumerId));
+        kafkaConsumer.consume(consumerId, 0, false, this::handle, object -> {});
+    }
 
-            while (!closed) {
-                var results = consumer.poll(Duration.ofSeconds(1));
-                for (var result : results) {
-                    responseWatcher.handle(result);
-                }
-            }
-        }
+    private void handle(ConsumerRecord<TKey,TResponse> result) {
+        responseWatcher.handle(result);
     }
 
     public TResponse send(String topic, TKey key, TRequest request) throws Exception {
@@ -52,10 +39,10 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
             responseRecordContainer.set(r);
             autoResetEvent.set();
         })) {
-            var requestRecord = new ProducerRecord<>(KafkaHelpers.getNamespacedTopic(topic, namespace), key, request);
-            requestRecord.headers().add(KafkaConsts.ResponseIdHeader, requestId.getBytes(StandardCharsets.UTF_8));
-            requestRecord.headers().add(KafkaConsts.ResponseTopicHeader, consumerId.getBytes(StandardCharsets.UTF_8));
-            producer.send(requestRecord);
+            Header responseIdHeader = new RoteKafkaConsumer.KafkaHeader(KafkaConsts.ResponseIdHeader, requestId.getBytes(StandardCharsets.UTF_8));
+            Header responseTopicHeader = new RoteKafkaConsumer.KafkaHeader(KafkaConsts.ResponseTopicHeader, consumerId.getBytes(StandardCharsets.UTF_8));
+            var headers = List.of(responseIdHeader, responseTopicHeader);
+            kafkaProducer.produce(topic, key, request, headers, true);
             autoResetEvent.waitOne(timeout);
             var responseRecord = responseRecordContainer.get();
             if (responseRecord == null)
@@ -66,8 +53,8 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
 
     @Override
     public void close() {
-        producer.close();
-        closed = true;
+        kafkaConsumer.close();
+        kafkaConsumer.close();
     }
 
     private class ResponseWatcher implements IKafkaConsumerHandler<TKey, TResponse> {
