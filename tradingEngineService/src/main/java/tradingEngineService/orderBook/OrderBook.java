@@ -6,8 +6,8 @@ import java.util.ArrayList;
 
 public class OrderBook {
     private long idCounter;
-    public final ArrayList<OrderBookEntry> Bids = new ArrayList<>();
-    public final ArrayList<OrderBookEntry> Asks = new ArrayList<>();
+    public final ArrayList<OrderBookEntry> bids = new ArrayList<>();
+    public final ArrayList<OrderBookEntry> asks = new ArrayList<>();
 
     public OrderBookLimitOrderResult processOrder(OrderBookLimitOrder order) {
         var allEntries = getExecutionSide(order.side());
@@ -24,9 +24,9 @@ public class OrderBook {
     }
 
     public OrderBookEntry cancelOrder(long id) {
-        var cancelledOrder = cancelOrder(id, Bids);
+        var cancelledOrder = cancelOrder(id, bids);
         if (cancelledOrder == null)
-            cancelledOrder = cancelOrder(id, Asks);
+            cancelledOrder = cancelOrder(id, asks);
         return cancelledOrder;
     }
 
@@ -49,11 +49,11 @@ public class OrderBook {
     }
 
     private ArrayList<OrderBookEntry> getExecutionSide(OrderBookSide side) {
-        return side == OrderBookSide.Buy ? Asks : Bids;
+        return side == OrderBookSide.Buy ? asks : bids;
     }
 
     private ArrayList<OrderBookEntry> getRestingSide(OrderBookSide side) {
-        return side == OrderBookSide.Sell ? Asks : Bids;
+        return side == OrderBookSide.Sell ? asks : bids;
     }
 
     private OrderBookEntry addRestingOrder(OrderBookLimitOrder order) {
