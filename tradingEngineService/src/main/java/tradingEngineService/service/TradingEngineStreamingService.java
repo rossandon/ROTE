@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import shared.kafka.RoteKafkaConsumer;
 import shared.kafka.KafkaConsts;
 import shared.kafka.RoteKafkaProducer;
+import shared.orderBook.LimitOrderResultStatus;
 import shared.service.TradingEngineServiceConsts;
 import shared.service.TradingEngineServiceRequest;
 import shared.service.TradingEngineServiceRequestType;
@@ -16,6 +17,7 @@ import shared.service.results.GetBalanceResult;
 import shared.service.results.GetBalancesResult;
 import shared.service.results.TradingEngineErrorResult;
 import shared.utils.ProcessingQueue;
+import tradingEngineService.referential.Instrument;
 import tradingEngineService.referential.ReferentialInventory;
 import tradingEngineService.tradingEngine.Account;
 import tradingEngineService.tradingEngine.LimitOrder;
@@ -34,19 +36,22 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
 
     private final RoteKafkaConsumer consumer;
     private final RoteKafkaProducer<String, TradingEngineServiceResponse> kafkaProducer;
+    private final RoteKafkaProducer<String, MarketDataUpdate> marketDataProducer;
     private final TradingEngine tradingEngine;
     private final ReferentialInventory referentialInventory;
     private final TradingEngineContextInstance tradingEngineContextInstance;
     private final ITradingEngineContextPersistor tradingContextPersistor;
     private final HashMap<TradingEngineServiceRequestType, ITradingEngineRequestHandler> handlers = new HashMap<>();
 
-    public TradingEngineStreamingService(RoteKafkaConsumer consumer,
-                                         RoteKafkaProducer<String, TradingEngineServiceResponse> kafkaProducer,
+    public TradingEngineStreamingService(RoteKafkaConsumer requestConsumer,
+                                         RoteKafkaProducer<String, TradingEngineServiceResponse> responseProducer,
+                                         RoteKafkaProducer<String, MarketDataUpdate> marketDataProducer,
                                          TradingEngine tradingEngine, ReferentialInventory referentialInventory,
                                          TradingEngineContextInstance tradingEngineContextInstance,
                                          ITradingEngineContextPersistor tradingContextPersistor) {
-        this.consumer = consumer;
-        this.kafkaProducer = kafkaProducer;
+        this.consumer = requestConsumer;
+        this.kafkaProducer = responseProducer;
+        this.marketDataProducer = marketDataProducer;
         this.tradingEngine = tradingEngine;
         this.referentialInventory = referentialInventory;
         this.tradingEngineContextInstance = tradingEngineContextInstance;
@@ -94,7 +99,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         TradingEngineServiceResponse response;
         try {
             var type = request.type();
-            log.info("Processing '" + type + "' request");
+//            log.info("Processing '" + type + "' request");
             var handler = handlers.get(type);
             response = handler.handle(request);
             tradingEngineContextInstance.getContext().sequence = record.offset();
@@ -133,12 +138,21 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         var instrument = referentialInventory.lookupInstrument(request.instrumentCode());
         var limitOrder = new LimitOrder(instrument, new Account(request.accountId()), request.amount(), request.price(), request.side());
         var limitOrderResult = tradingEngine.limitOrder(limitOrder);
+        if (limitOrderResult.type() == LimitOrderResultStatus.Ok) sendMarketData(instrument);
         return new TradingEngineServiceResponse(limitOrderResult);
+    }
+
+    private void sendMarketData(Instrument instrument) {
+        var orderBook = tradingEngineContextInstance.getContext().orderBooks.get(instrument.id()).orderBook();
+        var marketDataUpdate = new MarketDataUpdate(instrument.code(), orderBook);
+        marketDataProducer.produce(TradingEngineServiceConsts.MarketDataTopic, instrument.code(), marketDataUpdate, null, true);
     }
 
     private TradingEngineServiceResponse handleCancelRequest(TradingEngineServiceRequest request) {
         var instrument = referentialInventory.lookupInstrument(request.instrumentCode());
         var isCancelled = tradingEngine.cancel(new Account(request.accountId()), instrument, request.orderId());
+        if (isCancelled)
+            sendMarketData(instrument);
         return new TradingEngineServiceResponse(new CancelOrderResult(isCancelled));
     }
 
@@ -155,5 +169,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     @Override
     public void close() {
         consumer.close();
+        kafkaProducer.close();
+        marketDataProducer.close();
     }
 }

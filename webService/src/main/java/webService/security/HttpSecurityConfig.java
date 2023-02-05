@@ -20,7 +20,7 @@ public class HttpSecurityConfig {
                 .and()
             .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
             .authorizeRequests()
-                .antMatchers("/login/oauth2/code/google/**")
+                .antMatchers("/login/oauth2/code/google/**", "/system/ping")
                     .permitAll()
                 .anyRequest()
                     .authenticated()
