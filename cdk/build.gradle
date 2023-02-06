@@ -1,0 +1,23 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+application {
+    mainClass.set('Main')
+
+    // By default, the working diretory is the project folder, i.e. "./cdk".
+    // When running `cdk deploy`, the java process creates files in ./cdk/cdk.out.
+    // The CDK cli however will attempt to read these in ./cdk.out. Setting the
+    // working directory to the repo root fixes this problem.
+    tasks.run.workingDir = "../"
+}
+
+dependencies {
+    implementation 'software.amazon.awscdk:aws-cdk-lib:2.63.2'
+    implementation 'software.amazon.awscdk:msk-alpha:2.63.2-alpha.0'
+}
