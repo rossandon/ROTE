@@ -11,6 +11,7 @@ import webService.utils.CookieUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,7 +23,7 @@ public class CookieSetSuccessHandler implements AuthenticationSuccessHandler {
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-                                        Authentication authentication) {
+                                        Authentication authentication) throws IOException {
 
         var token = (OAuth2AuthenticationToken) authentication;
         var username = token.getName();
@@ -34,5 +35,6 @@ public class CookieSetSuccessHandler implements AuthenticationSuccessHandler {
         var jwt = jwtHelper.createJwtForClaims(username, claims);
 
         CookieUtils.addCookie(response, CookieConsts.ROTEAuthCookieName, jwt, 100000);
+        response.sendRedirect("/system/whoami");
     }
 }
