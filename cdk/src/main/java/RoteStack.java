@@ -32,7 +32,7 @@ public class RoteStack extends Stack {
         super(scope, id, props);
 
         var domainName = "rote.apps.ryanossandon.com";
-        var version = "b08cfff";
+        var version = "0994e54";
         var profile = "prod";
         var googleOAuthClientId = "162744778869-jkl6qurhtus9mg28gtgpr9mge73qvo8t.apps.googleusercontent.com";
 
@@ -113,21 +113,19 @@ public class RoteStack extends Stack {
                 .build();
     }
 
-    @NotNull
-    private static software.amazon.awscdk.services.msk.alpha.Cluster kafkaCluster(Vpc vpc) {
+    private software.amazon.awscdk.services.msk.alpha.Cluster kafkaCluster(Vpc vpc) {
         var kafkaSecurityGroup = SecurityGroup.Builder.create(this, "KafkaSecurityGroup")
                 .vpc(vpc)
                 .build();
 
         kafkaSecurityGroup.addIngressRule(Peer.anyIpv4(), Port.tcp(9094));
 
-        var kafkaCluster = software.amazon.awscdk.services.msk.alpha.Cluster.Builder.create(this, "Kafka")
+        return software.amazon.awscdk.services.msk.alpha.Cluster.Builder.create(this, "Kafka")
                 .vpc(vpc)
                 .removalPolicy(RemovalPolicy.DESTROY)
                 .clusterName("rote")
                 .securityGroups(List.of(kafkaSecurityGroup))
                 .kafkaVersion(KafkaVersion.V2_6_0)
                 .build();
-        return kafkaCluster;
     }
 }
