@@ -31,7 +31,7 @@ public class RoteKafkaProducer<TProducerKey, TProducerValue> implements AutoClos
                 record.headers().add(header);
             }
         }
-        
+
         return producer.send(record, (event, ex) -> {
             if (ex != null) {
                 log.error("Failed to send to Kafka", ex);

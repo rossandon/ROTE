@@ -2,7 +2,9 @@ package shared.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
+import org.apache.log4j.Logger;
 import shared.utils.AutoResetEvent;
+import shared.utils.ManualResetEvent;
 import shared.utils.UuidHelper;
 
 import java.nio.charset.StandardCharsets;
@@ -12,26 +14,39 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Runnable, AutoCloseable {
+    private static final Logger log = Logger.getLogger(KafkaRequestResponseClient.class);
+
     private final RoteKafkaProducer<TKey, TRequest> kafkaProducer;
     private final RoteKafkaConsumer kafkaConsumer;
     private final String consumerId = UuidHelper.GetNewUuid() + "-responses";
     private final ResponseWatcher responseWatcher = new ResponseWatcher();
+    private final RoteKafkaAdminClient kafkaAdminClient;
+    private final ManualResetEvent initialized = new ManualResetEvent(false);
     public final long timeout = 10_000;
 
-    public KafkaRequestResponseClient(RoteKafkaProducer<TKey, TRequest> kafkaProducer, RoteKafkaConsumer kafkaConsumer) {
+
+    public KafkaRequestResponseClient(RoteKafkaProducer<TKey, TRequest> kafkaProducer,
+                                      RoteKafkaConsumer kafkaConsumer,
+                                      RoteKafkaAdminClient kafkaAdminClient) {
         this.kafkaProducer = kafkaProducer;
         this.kafkaConsumer = kafkaConsumer;
+        this.kafkaAdminClient = kafkaAdminClient;
     }
 
     public void run() {
-        kafkaConsumer.consume(consumerId, 0, false, this::handle, object -> {});
+        kafkaAdminClient.createTopic(consumerId, 1);
+        initialized.set();
+        kafkaConsumer.consume(consumerId, 0, false, this::handle, object -> { });
     }
 
-    private void handle(ConsumerRecord<TKey,TResponse> result) {
+    private void handle(ConsumerRecord<TKey, TResponse> result) {
+        log.info("Received message!!!");
         responseWatcher.handle(result);
     }
 
     public TResponse send(String topic, TKey key, TRequest request) throws Exception {
+        initialized.waitOne(30_000);
+
         var requestId = UuidHelper.GetNewUuid();
         var autoResetEvent = new AutoResetEvent(false);
         AtomicReference<ConsumerRecord<TKey, TResponse>> responseRecordContainer = new AtomicReference<>();
@@ -62,14 +77,17 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
 
         @Override
         public void handle(ConsumerRecord<TKey, TResponse> record) {
+            IKafkaConsumerHandler<TKey, TResponse> handler = null;
             synchronized (handlers) {
                 var responseId = new String(record.headers().headers(KafkaConsts.ResponseIdHeader).iterator().next().value(), StandardCharsets.UTF_8);
-                var handler = handlers.get(responseId);
+                handler = handlers.get(responseId);
                 if (handler != null) {
-                    handler.handle(record);
                     handlers.remove(responseId);
                 }
             }
+
+            if (handler != null)
+                handler.handle(record);
         }
 
         public AutoCloseable watch(String id, IKafkaConsumerHandler<TKey, TResponse> handler) {

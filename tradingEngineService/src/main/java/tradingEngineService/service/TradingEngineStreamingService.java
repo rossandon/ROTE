@@ -4,6 +4,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
+import shared.kafka.RoteKafkaAdminClient;
 import shared.kafka.RoteKafkaConsumer;
 import shared.kafka.KafkaConsts;
 import shared.kafka.RoteKafkaProducer;
@@ -37,6 +38,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     private final RoteKafkaConsumer consumer;
     private final RoteKafkaProducer<String, TradingEngineServiceResponse> kafkaProducer;
     private final RoteKafkaProducer<String, MarketDataUpdate> marketDataProducer;
+    private final RoteKafkaAdminClient kafkaAdminClient;
     private final TradingEngine tradingEngine;
     private final ReferentialInventory referentialInventory;
     private final TradingEngineContextInstance tradingEngineContextInstance;
@@ -46,12 +48,14 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     public TradingEngineStreamingService(RoteKafkaConsumer requestConsumer,
                                          RoteKafkaProducer<String, TradingEngineServiceResponse> responseProducer,
                                          RoteKafkaProducer<String, MarketDataUpdate> marketDataProducer,
+                                         RoteKafkaAdminClient kafkaAdminClient,
                                          TradingEngine tradingEngine, ReferentialInventory referentialInventory,
                                          TradingEngineContextInstance tradingEngineContextInstance,
                                          ITradingEngineContextPersistor tradingContextPersistor) {
         this.consumer = requestConsumer;
         this.kafkaProducer = responseProducer;
         this.marketDataProducer = marketDataProducer;
+        this.kafkaAdminClient = kafkaAdminClient;
         this.tradingEngine = tradingEngine;
         this.referentialInventory = referentialInventory;
         this.tradingEngineContextInstance = tradingEngineContextInstance;
@@ -66,6 +70,9 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     }
 
     public void run() {
+        kafkaAdminClient.createTopic(TradingEngineServiceConsts.RequestTopic, 1);
+        kafkaAdminClient.createTopic(TradingEngineServiceConsts.MarketDataTopic, 1);
+
         var startingOffset = tradingEngineContextInstance.getContext().sequence;
         log.info("Running trading engine service; starting at offset '" + startingOffset + "'");
         consumer.consume(TradingEngineServiceConsts.RequestTopic, startingOffset, false, this::handleKafkaRecord, this::handleControlMessage);
