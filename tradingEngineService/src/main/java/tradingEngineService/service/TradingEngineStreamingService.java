@@ -99,7 +99,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         TradingEngineServiceResponse response;
         try {
             var type = request.type();
-//            log.info("Processing '" + type + "' request");
+            log.info("Processing '" + type + "' request");
             var handler = handlers.get(type);
             response = handler.handle(request);
             tradingEngineContextInstance.getContext().sequence = record.offset();

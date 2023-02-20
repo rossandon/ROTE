@@ -14,6 +14,7 @@ public class KafkaConfigurationProvider {
     private String groupId;
     private String uniqueNamespace;
     private String fromStart;
+    private String tls;
 
     public String getEnvironmentName() {
         if (environmentName == null && Boolean.parseBoolean(uniqueNamespace)) {
@@ -39,14 +40,30 @@ public class KafkaConfigurationProvider {
         this.environmentName = environmentName;
     }
 
-    public void setTargetHost(String targetHost) {
-        this.targetHost = targetHost;
-    }
+    public void setTargetHost(String targetHost) { this.targetHost = targetHost; }
+
+    public void setTls(String tls) { this.tls = tls; }
 
     public KafkaConfigurationProvider() {
     }
 
-    public String getGroupId() {
+    public Properties buildProps() {
+        var props = new Properties();
+        props.put("bootstrap.servers", targetHost);
+        props.put("auto.offset.reset", Boolean.parseBoolean(fromStart) ? "earliest" : "latest");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.springframework.kafka.support.serializer.JsonSerializer");
+        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer", "org.springframework.kafka.support.serializer.JsonDeserializer");
+        props.put("client.id", UuidHelper.GetNewUuid());
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "shared.service");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, getGroupId());
+        if (Boolean.parseBoolean(tls))
+            props.put("security.protocol", "SSL");
+        return props;
+    }
+
+    private String getGroupId() {
         var builder = new StringBuilder();
         if (environmentName != null) {
             builder.append(environmentName);
@@ -57,32 +74,5 @@ public class KafkaConfigurationProvider {
             builder.append("default");
         }
         return builder.toString();
-    }
-
-    public Properties buildProps() {
-        return getConfiguration(targetHost, getGroupId(), Boolean.parseBoolean(fromStart));
-    }
-
-    public static Properties getConfiguration(String targetHost, String groupId, Boolean fromStart) {
-        var props = getConfiguration(targetHost, fromStart);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-        return props;
-    }
-
-    public static Properties getConfiguration(String targetHost, Boolean fromStart) {
-        var props = new Properties();
-        props.put("bootstrap.servers", targetHost);
-        props.put("auto.offset.reset", fromStart ? "earliest" : "latest");
-        getConfiguration(props);
-        return props;
-    }
-
-    public static void getConfiguration(Properties props) {
-        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        props.put("value.serializer", "org.springframework.kafka.support.serializer.JsonSerializer");
-        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        props.put("value.deserializer", "org.springframework.kafka.support.serializer.JsonDeserializer");
-        props.put("client.id", UuidHelper.GetNewUuid());
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "shared.service");
     }
 }
