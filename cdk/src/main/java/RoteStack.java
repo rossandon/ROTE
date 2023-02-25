@@ -1,23 +1,18 @@
 import org.jetbrains.annotations.NotNull;
-import software.amazon.awscdk.App;
-import software.amazon.awscdk.RemovalPolicy;
-import software.amazon.awscdk.Stack;
-import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.*;
 import software.amazon.awscdk.services.certificatemanager.Certificate;
 import software.amazon.awscdk.services.certificatemanager.CertificateValidation;
 import software.amazon.awscdk.services.ec2.Peer;
 import software.amazon.awscdk.services.ec2.Port;
 import software.amazon.awscdk.services.ec2.SecurityGroup;
 import software.amazon.awscdk.services.ec2.Vpc;
-import software.amazon.awscdk.services.ecr.Repository;
+import software.amazon.awscdk.services.ecr.assets.DockerImageAsset;
 import software.amazon.awscdk.services.ecs.*;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskImageOptions;
 import software.amazon.awscdk.services.elasticloadbalancingv2.HealthCheck;
-import software.amazon.awscdk.services.msk.alpha.ClusterConfigurationInfo;
 import software.amazon.awscdk.services.msk.alpha.KafkaVersion;
 import software.amazon.awscdk.services.route53.HostedZone;
-import software.amazon.awscdk.services.route53.HostedZoneAttributes;
 import software.amazon.awscdk.services.secretsmanager.Secret;
 
 import java.util.List;
@@ -32,7 +27,6 @@ public class RoteStack extends Stack {
         super(scope, id, props);
 
         var domainName = "rote.apps.ryanossandon.com";
-        var version = "0994e54";
         var profile = "prod";
         var googleOAuthClientId = "162744778869-jkl6qurhtus9mg28gtgpr9mge73qvo8t.apps.googleusercontent.com";
 
@@ -42,8 +36,6 @@ public class RoteStack extends Stack {
 
         Cluster cluster = Cluster.Builder.create(this, "EcsCluster")
                 .vpc(vpc).build();
-
-        var repository = Repository.fromRepositoryArn(this, "ECR", ManualResources.EcrRepoArn);
 
         var kafkaCluster = kafkaCluster(vpc);
 
@@ -60,6 +52,18 @@ public class RoteStack extends Stack {
         var clientIdProp = "spring.security.oauth2.client.registration.google.client-id";
         var secrets = Map.of(clientSecretProp, software.amazon.awscdk.services.ecs.Secret.fromSecretsManager(googleOAuthSecret));
 
+        var tradingEngineServiceImage = DockerImageAsset.Builder.create(this, "TradingEngineImage")
+                .target("tradingEngineService")
+                .directory("./")
+                .exclude(List.of(".gradle")) // Need to ignore .gradle outside
+                .build();
+
+        var webServiceImage = DockerImageAsset.Builder.create(this, "WebServiceImage")
+                .target("webService")
+                .directory("./")
+                .exclude(List.of(".gradle"))
+                .build();
+
         var webService = ApplicationLoadBalancedFargateService.Builder.create(this, "WebService")
                 .cluster(cluster)
                 .cpu(512)
@@ -69,7 +73,7 @@ public class RoteStack extends Stack {
                 .certificate(certificate)
                 .taskImageOptions(
                         ApplicationLoadBalancedTaskImageOptions.builder()
-                                .image(ContainerImage.fromEcrRepository(repository, "rote-webService-" + version))
+                                .image(ContainerImage.fromDockerImageAsset(tradingEngineServiceImage))
                                 .environment(Map.of(
                                         "SPRING_PROFILES_ACTIVE", profile,
                                         "kafka.targetHost", kafkaCluster.getBootstrapBrokersTls(),
@@ -93,7 +97,7 @@ public class RoteStack extends Stack {
                 .build();
 
         var tradingEngineContainerDef = ContainerDefinitionOptions.builder()
-                .image(ContainerImage.fromEcrRepository(repository, "rote-trading-" + version))
+                .image(ContainerImage.fromDockerImageAsset(webServiceImage))
                 .logging(LogDrivers.awsLogs(AwsLogDriverProps.builder().streamPrefix("TradingEngine").build()))
                 .environment(Map.of(
                         "SPRING_PROFILES_ACTIVE", profile,
