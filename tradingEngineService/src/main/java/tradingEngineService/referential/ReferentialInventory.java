@@ -15,9 +15,9 @@ public class ReferentialInventory {
         return assetsByCode.values();
     }
 
-    public Instrument lookupInstrument(String code) {
+    public Instrument lookupInstrumentOrThrow(String code) throws Exception {
         if (!instrumentsByCode.containsKey(code))
-            return null;
+            throw new Exception(TradingEngineServiceErrors.UnknownAsset);
         return instrumentsByCode.get(code);
     }
 

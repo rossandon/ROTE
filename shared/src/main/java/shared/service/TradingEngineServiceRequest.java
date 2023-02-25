@@ -16,6 +16,10 @@ public record TradingEngineServiceRequest(TradingEngineServiceRequestType type, 
         return new TradingEngineServiceRequest(TradingEngineServiceRequestType.GetBalance, 0, 0, accountId, null, OrderBookSide.Buy, assetCode, 0);
     }
 
+    public static TradingEngineServiceRequest getBook(String assetCode) {
+        return new TradingEngineServiceRequest(TradingEngineServiceRequestType.GetBalance, 0, 0, 0, null, OrderBookSide.Buy, assetCode, 0);
+    }
+
     public static TradingEngineServiceRequest getBalances(long accountId) {
         return new TradingEngineServiceRequest(TradingEngineServiceRequestType.GetBalances, 0, 0, accountId, null, OrderBookSide.Buy, null, 0);
     }

@@ -9,6 +9,8 @@ import shared.service.TradingEngineServiceRequest;
 import tradingEngineService.service.TradingEngineStreamingService;
 import tradingEngineService.tradingEngine.TradingEngineContextInstance;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,7 +29,7 @@ public class ContextPersistenceTests extends IntegrationTest {
         send(TradingEngineServiceRequest.adjustBalance(20, 1, "USD"));
 
         var future = tradingEngineStreamingService.snapshot();
-        var result = future.get();
+        var result = future.get(30, TimeUnit.SECONDS);
         assertTrue((Boolean)result);
 
         instance.reload();

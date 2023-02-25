@@ -3,15 +3,15 @@ package shared.kafka;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.log4j.Logger;
-import shared.utils.AutoResetEvent;
-import shared.utils.ManualResetEvent;
 import shared.utils.UuidHelper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Runnable, AutoCloseable {
     private static final Logger log = Logger.getLogger(KafkaRequestResponseClient.class);
@@ -21,8 +21,8 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
     private final String consumerId = UuidHelper.GetNewUuid() + "-responses";
     private final ResponseWatcher responseWatcher = new ResponseWatcher();
     private final RoteKafkaAdminClient kafkaAdminClient;
-    private final ManualResetEvent initialized = new ManualResetEvent(false);
-    public final long timeout = 10_000;
+    private final CompletableFuture<Object> initialized = new CompletableFuture<>();
+    public final long timeout = 10;
 
 
     public KafkaRequestResponseClient(RoteKafkaProducer<TKey, TRequest> kafkaProducer,
@@ -34,36 +34,39 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
     }
 
     public void run() {
-        kafkaAdminClient.createTopic(consumerId, 1);
-        initialized.set();
-        kafkaConsumer.consume(consumerId, 0, false, this::handle, object -> { });
+        try {
+            kafkaAdminClient.createTopic(consumerId, 1);
+            initialized.complete(null);
+            kafkaConsumer.consume(consumerId, 0, false, this::handle, object -> {
+            });
+        }
+        catch (Exception e) {
+            log.error("Error running request-response client", e);
+            initialized.completeExceptionally(e);
+            throw new RuntimeException(e);
+        }
     }
 
     private void handle(ConsumerRecord<TKey, TResponse> result) {
-        log.info("Received message!!!");
         responseWatcher.handle(result);
     }
 
     public TResponse send(String topic, TKey key, TRequest request) throws Exception {
-        initialized.waitOne(30_000);
+        waitInitialized();
 
+        var future = new CompletableFuture<TResponse>();
         var requestId = UuidHelper.GetNewUuid();
-        var autoResetEvent = new AutoResetEvent(false);
-        AtomicReference<ConsumerRecord<TKey, TResponse>> responseRecordContainer = new AtomicReference<>();
-        try (var watcher = responseWatcher.watch(requestId, r -> {
-            responseRecordContainer.set(r);
-            autoResetEvent.set();
-        })) {
+        try (var watcher = responseWatcher.watch(requestId, r -> future.complete(r.value()))) {
             Header responseIdHeader = new RoteKafkaConsumer.KafkaHeader(KafkaConsts.ResponseIdHeader, requestId.getBytes(StandardCharsets.UTF_8));
             Header responseTopicHeader = new RoteKafkaConsumer.KafkaHeader(KafkaConsts.ResponseTopicHeader, consumerId.getBytes(StandardCharsets.UTF_8));
             var headers = List.of(responseIdHeader, responseTopicHeader);
             kafkaProducer.produce(topic, key, request, headers, true);
-            autoResetEvent.waitOne(timeout);
-            var responseRecord = responseRecordContainer.get();
-            if (responseRecord == null)
-                throw new TimeoutException("Timeout waiting for response");
-            return responseRecord.value();
+            return future.get(timeout, TimeUnit.SECONDS);
         }
+    }
+
+    private void waitInitialized() throws InterruptedException, ExecutionException, TimeoutException {
+        initialized.get(30, TimeUnit.SECONDS);
     }
 
     @Override
@@ -77,7 +80,7 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
 
         @Override
         public void handle(ConsumerRecord<TKey, TResponse> record) {
-            IKafkaConsumerHandler<TKey, TResponse> handler = null;
+            IKafkaConsumerHandler<TKey, TResponse> handler;
             synchronized (handlers) {
                 var responseId = new String(record.headers().headers(KafkaConsts.ResponseIdHeader).iterator().next().value(), StandardCharsets.UTF_8);
                 handler = handlers.get(responseId);

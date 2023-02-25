@@ -2,6 +2,8 @@ package shared.kafka;
 
 import org.apache.kafka.common.TopicPartition;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
 import shared.utils.ProcessingQueue;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.header.Header;
@@ -13,6 +15,7 @@ import java.util.Properties;
 import java.util.concurrent.Future;
 
 @Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class RoteKafkaConsumer implements AutoCloseable {
     private static final Logger log = Logger.getLogger(RoteKafkaConsumer.class);
 
@@ -46,12 +49,13 @@ public class RoteKafkaConsumer implements AutoCloseable {
                 while (true) {
                     var item = controlMessageQueue.dequeue();
                     if (item == null) break;
+                    log.debug("Processing control message");
                     controlMessageHandler.handle(item);
+                    log.debug("Processed control message");
                 }
             }
         }
     }
-
 
     public Future<Object> queueControlMessage(Object obj) {
         return controlMessageQueue.queue(obj);
