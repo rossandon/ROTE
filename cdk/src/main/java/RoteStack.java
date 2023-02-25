@@ -73,7 +73,7 @@ public class RoteStack extends Stack {
                 .certificate(certificate)
                 .taskImageOptions(
                         ApplicationLoadBalancedTaskImageOptions.builder()
-                                .image(ContainerImage.fromDockerImageAsset(tradingEngineServiceImage))
+                                .image(ContainerImage.fromDockerImageAsset(webServiceImage))
                                 .environment(Map.of(
                                         "SPRING_PROFILES_ACTIVE", profile,
                                         "kafka.targetHost", kafkaCluster.getBootstrapBrokersTls(),
@@ -89,6 +89,7 @@ public class RoteStack extends Stack {
                 .publicLoadBalancer(true)
                 .build();
 
+        webService.getTargetGroup().setAttribute("deregistration_delay.timeout_seconds", "5");
         webService.getTargetGroup().configureHealthCheck(HealthCheck.builder().path("/system/ping").build());
 
         var tradingEngineServiceTaskDef = FargateTaskDefinition.Builder.create(this, "TradingEngineServiceTaskDef")
@@ -97,7 +98,7 @@ public class RoteStack extends Stack {
                 .build();
 
         var tradingEngineContainerDef = ContainerDefinitionOptions.builder()
-                .image(ContainerImage.fromDockerImageAsset(webServiceImage))
+                .image(ContainerImage.fromDockerImageAsset(tradingEngineServiceImage))
                 .logging(LogDrivers.awsLogs(AwsLogDriverProps.builder().streamPrefix("TradingEngine").build()))
                 .environment(Map.of(
                         "SPRING_PROFILES_ACTIVE", profile,
