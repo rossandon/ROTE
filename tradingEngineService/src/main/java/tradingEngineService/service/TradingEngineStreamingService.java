@@ -13,10 +13,7 @@ import shared.service.TradingEngineServiceConsts;
 import shared.service.TradingEngineServiceRequest;
 import shared.service.TradingEngineServiceRequestType;
 import shared.service.TradingEngineServiceResponse;
-import shared.service.results.CancelOrderResult;
-import shared.service.results.GetBalanceResult;
-import shared.service.results.GetBalancesResult;
-import shared.service.results.TradingEngineErrorResult;
+import shared.service.results.*;
 import shared.utils.ProcessingQueue;
 import tradingEngineService.referential.Instrument;
 import tradingEngineService.referential.ReferentialInventory;
@@ -29,7 +26,9 @@ import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 
 @Component
 public class TradingEngineStreamingService implements Runnable, Closeable {
@@ -37,7 +36,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
 
     private final RoteKafkaConsumer consumer;
     private final RoteKafkaProducer<String, TradingEngineServiceResponse> kafkaProducer;
-    private final RoteKafkaProducer<String, MarketDataUpdate> marketDataProducer;
+    private final RoteKafkaProducer<String, OrderBookSnapshot> marketDataProducer;
     private final RoteKafkaAdminClient kafkaAdminClient;
     private final TradingEngine tradingEngine;
     private final ReferentialInventory referentialInventory;
@@ -47,9 +46,9 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
 
     public TradingEngineStreamingService(RoteKafkaConsumer requestConsumer,
                                          RoteKafkaProducer<String, TradingEngineServiceResponse> responseProducer,
-                                         RoteKafkaProducer<String, MarketDataUpdate> marketDataProducer,
-                                         RoteKafkaAdminClient kafkaAdminClient,
-                                         TradingEngine tradingEngine, ReferentialInventory referentialInventory,
+                                         RoteKafkaProducer<String, OrderBookSnapshot> marketDataProducer,
+                                         RoteKafkaAdminClient kafkaAdminClient, TradingEngine tradingEngine,
+                                         ReferentialInventory referentialInventory,
                                          TradingEngineContextInstance tradingEngineContextInstance,
                                          ITradingEngineContextPersistor tradingContextPersistor) {
         this.consumer = requestConsumer;
@@ -63,6 +62,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
 
         handlers.put(TradingEngineServiceRequestType.GetBalance, this::handleGetBalanceRequest);
         handlers.put(TradingEngineServiceRequestType.GetBalances, this::handleGetBalancesRequest);
+        handlers.put(TradingEngineServiceRequestType.GetBook, this::handleGetBookRequest);
         handlers.put(TradingEngineServiceRequestType.LimitOrder, this::handleLimitOrderRequest);
         handlers.put(TradingEngineServiceRequestType.AdjustBalance, this::handleAdjustBalanceRequest);
         handlers.put(TradingEngineServiceRequestType.Cancel, this::handleCancelRequest);
@@ -70,13 +70,24 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     }
 
     public void run() {
-        kafkaAdminClient.createTopic(TradingEngineServiceConsts.RequestTopic, 1);
-        kafkaAdminClient.createTopic(TradingEngineServiceConsts.MarketDataTopic, 1);
+        try {
+            kafkaAdminClient.createTopic(TradingEngineServiceConsts.RequestTopic, 1);
+            kafkaAdminClient.createTopic(TradingEngineServiceConsts.MarketDataTopic, 1);
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
 
         var startingOffset = tradingEngineContextInstance.getContext().sequence;
-        log.info("Running trading engine service; starting at offset '" + startingOffset + "'");
-        consumer.consume(TradingEngineServiceConsts.RequestTopic, startingOffset, false, this::handleKafkaRecord, this::handleControlMessage);
-        log.info("Stopped trading engine service");
+        try {
+            log.info("Running trading engine service; starting at offset '" + startingOffset + "'");
+            consumer.consume(TradingEngineServiceConsts.RequestTopic, startingOffset, false, this::handleKafkaRecord, this::handleControlMessage);
+            log.info("Stopped trading engine service");
+        }
+        catch (Exception e)
+        {
+            log.error("Trading engine service quit", e);
+            throw e;
+        }
     }
 
     public Future<Object> snapshot() {
@@ -118,6 +129,12 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         sendResponse(responseTopic, responseId, response);
     }
 
+    private TradingEngineServiceResponse handleGetBookRequest(TradingEngineServiceRequest request) throws Exception {
+        var instrument = referentialInventory.lookupInstrumentOrThrow(request.instrumentCode());
+        var book = getOrderBookSnapshot(instrument);
+        return new TradingEngineServiceResponse(book);
+    }
+
     private TradingEngineServiceResponse handleGetBalanceRequest(TradingEngineServiceRequest request) throws Exception {
         var asset = referentialInventory.lookupAssetOrThrow(request.assetCode());
         var balance = tradingEngine.getBalance(request.accountId(), asset);
@@ -141,25 +158,28 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         return new TradingEngineServiceResponse();
     }
 
-    private TradingEngineServiceResponse handleLimitOrderRequest(TradingEngineServiceRequest request) {
-        var instrument = referentialInventory.lookupInstrument(request.instrumentCode());
+    private TradingEngineServiceResponse handleLimitOrderRequest(TradingEngineServiceRequest request) throws Exception {
+        var instrument = referentialInventory.lookupInstrumentOrThrow(request.instrumentCode());
         var limitOrder = new LimitOrder(instrument, new Account(request.accountId()), request.amount(), request.price(), request.side());
         var limitOrderResult = tradingEngine.limitOrder(limitOrder);
-        if (limitOrderResult.type() == LimitOrderResultStatus.Ok) sendMarketData(instrument);
+        if (limitOrderResult.type() == LimitOrderResultStatus.Ok) sendOrderBookSnapshotUpdate(instrument);
         return new TradingEngineServiceResponse(limitOrderResult);
     }
 
-    private void sendMarketData(Instrument instrument) {
-        var orderBook = tradingEngineContextInstance.getContext().orderBooks.get(instrument.id()).orderBook();
-        var marketDataUpdate = new MarketDataUpdate(instrument.code(), orderBook);
-        marketDataProducer.produce(TradingEngineServiceConsts.MarketDataTopic, instrument.code(), marketDataUpdate, null, true);
+    private void sendOrderBookSnapshotUpdate(Instrument instrument) {
+        var book = getOrderBookSnapshot(instrument);
+        marketDataProducer.produce(TradingEngineServiceConsts.MarketDataTopic, instrument.code(), book, null, true);
     }
 
-    private TradingEngineServiceResponse handleCancelRequest(TradingEngineServiceRequest request) {
-        var instrument = referentialInventory.lookupInstrument(request.instrumentCode());
+    private OrderBookSnapshot getOrderBookSnapshot(Instrument instrument) {
+        var orderBook = tradingEngineContextInstance.getContext().ensureOrderBook(instrument);
+        return new OrderBookSnapshot(instrument.code(), orderBook.orderBook().bids, orderBook.orderBook().asks);
+    }
+
+    private TradingEngineServiceResponse handleCancelRequest(TradingEngineServiceRequest request) throws Exception {
+        var instrument = referentialInventory.lookupInstrumentOrThrow(request.instrumentCode());
         var isCancelled = tradingEngine.cancel(new Account(request.accountId()), instrument, request.orderId());
-        if (isCancelled)
-            sendMarketData(instrument);
+        if (isCancelled) sendOrderBookSnapshotUpdate(instrument);
         return new TradingEngineServiceResponse(new CancelOrderResult(isCancelled));
     }
 

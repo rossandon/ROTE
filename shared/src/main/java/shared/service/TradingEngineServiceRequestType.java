@@ -5,6 +5,7 @@ public enum TradingEngineServiceRequestType {
     AdjustBalance,
     GetBalance,
     GetBalances,
+    GetBook,
     Cancel,
     Error,
 }
