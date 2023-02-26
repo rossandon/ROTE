@@ -10,7 +10,9 @@ import org.apache.kafka.common.header.Header;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Future;
 
@@ -30,16 +32,20 @@ public class RoteKafkaConsumer implements AutoCloseable {
         this.props = kafkaConfigurationProvider.buildProps();
     }
 
-    public <TKey, TValue> void consume(String topic, long offset, boolean autoCommit,
-                                       IKafkaConsumerHandler<TKey, TValue> handler,
-                                       IKafkaControlMessageHandler controlMessageHandler) {
+    public <TKey, TValue> void consumePartitions(Collection<TopicPartitionAndOffet> topics, boolean autoCommit,
+                                                 IKafkaConsumerHandler<TKey, TValue> handler,
+                                                 IKafkaControlMessageHandler controlMessageHandler) {
         var consumerProps = (Properties) props.clone();
         consumerProps.put("enable.auto.commit", Boolean.toString(autoCommit).toLowerCase());
         try (var consumer = new KafkaConsumer<TKey, TValue>(consumerProps)) {
-            var namespacedTopic = KafkaHelpers.getNamespacedTopic(topic, namespace);
-            var topicPartition = new TopicPartition(namespacedTopic, 0);
-            consumer.assign(Collections.singleton(topicPartition));
-            consumer.seek(topicPartition, offset);
+            var topicPartitions = topics.stream().map(t -> new TopicPartition(KafkaHelpers.getNamespacedTopic(t.topic, namespace), t.partition)).toList();
+            consumer.assign(topicPartitions);
+
+            for (var topic : topics) {
+                if (topic.offset.isPresent())
+                    consumer.seek(new TopicPartition(KafkaHelpers.getNamespacedTopic(topic.topic, namespace), topic.partition), topic.offset.get());
+            }
+
             while (!closed) {
                 var results = consumer.poll(Duration.ofSeconds(1));
                 for (var result : results) {
@@ -57,6 +63,24 @@ public class RoteKafkaConsumer implements AutoCloseable {
         }
     }
 
+    public <TKey, TValue> void consumePartition(String topic, int partition, long offset, boolean autoCommit,
+                                                IKafkaConsumerHandler<TKey, TValue> handler) {
+        var consumerProps = (Properties) props.clone();
+        consumerProps.put("enable.auto.commit", Boolean.toString(autoCommit).toLowerCase());
+        try (var consumer = new KafkaConsumer<TKey, TValue>(consumerProps)) {
+            var namespacedTopic = KafkaHelpers.getNamespacedTopic(topic, namespace);
+            var topicPartition = new TopicPartition(namespacedTopic, 0);
+            consumer.assign(Collections.singleton(topicPartition));
+            consumer.seek(topicPartition, offset);
+            while (!closed) {
+                var results = consumer.poll(Duration.ofSeconds(1));
+                for (var result : results) {
+                    handler.handle(result);
+                }
+            }
+        }
+    }
+
     public Future<Object> queueControlMessage(Object obj) {
         return controlMessageQueue.queue(obj);
     }
@@ -64,6 +88,9 @@ public class RoteKafkaConsumer implements AutoCloseable {
     @Override
     public void close() {
         closed = true;
+    }
+
+    public record TopicPartitionAndOffet(String topic, int partition, Optional<Long> offset) {
     }
 
     public record KafkaHeader(String key, byte[] value) implements Header {

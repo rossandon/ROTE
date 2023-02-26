@@ -9,6 +9,7 @@ import shared.service.TradingEngineServiceRequest;
 
 import java.security.Principal;
 import java.util.HashMap;
+import java.util.concurrent.Future;
 
 @RestController
 public class BalanceController {
@@ -17,10 +18,16 @@ public class BalanceController {
     TradingEngineKafkaRequestResponseClient client;
 
     @GetMapping("balances/list")
-    HashMap<String, Long> listBalances(Principal principal) throws Exception {
-        var resp = client.send(TradingEngineServiceRequest.getBalances(principal.getName().hashCode()));
-        resp.assertOk();
-        return resp.getBalancesResult().balances();
+    Future<HashMap<String, Long>> listBalances(Principal principal) throws Exception {
+        var future = client.sendAsync(TradingEngineServiceRequest.getBalances(principal.getName().hashCode()));
+        return future.thenApply(resp -> {
+            try {
+                resp.assertOk();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            return resp.getBalancesResult().balances();
+        });
     }
 
     @GetMapping("balances/add")

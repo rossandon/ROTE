@@ -8,10 +8,7 @@ import shared.utils.UuidHelper;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Runnable, AutoCloseable {
     private static final Logger log = Logger.getLogger(KafkaRequestResponseClient.class);
@@ -37,8 +34,7 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
         try {
             kafkaAdminClient.createTopic(consumerId, 1);
             initialized.complete(null);
-            kafkaConsumer.consume(consumerId, 0, false, this::handle, object -> {
-            });
+            kafkaConsumer.consumePartition(consumerId, 0, 0, false, this::handle);
         }
         catch (Exception e) {
             log.error("Error running request-response client", e);
@@ -52,17 +48,28 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
     }
 
     public TResponse send(String topic, TKey key, TRequest request) throws Exception {
+        return sendAsync(topic, key, request).get(30, TimeUnit.SECONDS);
+    }
+
+    public CompletableFuture<TResponse> sendAsync(String topic, TKey key, TRequest request) throws Exception {
         waitInitialized();
 
         var future = new CompletableFuture<TResponse>();
         var requestId = UuidHelper.GetNewUuid();
-        try (var watcher = responseWatcher.watch(requestId, r -> future.complete(r.value()))) {
-            Header responseIdHeader = new RoteKafkaConsumer.KafkaHeader(KafkaConsts.ResponseIdHeader, requestId.getBytes(StandardCharsets.UTF_8));
-            Header responseTopicHeader = new RoteKafkaConsumer.KafkaHeader(KafkaConsts.ResponseTopicHeader, consumerId.getBytes(StandardCharsets.UTF_8));
-            var headers = List.of(responseIdHeader, responseTopicHeader);
-            kafkaProducer.produce(topic, key, request, headers, true);
-            return future.get(timeout, TimeUnit.SECONDS);
-        }
+        var watcher = responseWatcher.watch(requestId, r -> future.complete(r.value()));
+        var responseIdHeader = (Header)new RoteKafkaConsumer.KafkaHeader(KafkaConsts.ResponseIdHeader, requestId.getBytes(StandardCharsets.UTF_8));
+        var responseTopicHeader = (Header)new RoteKafkaConsumer.KafkaHeader(KafkaConsts.ResponseTopicHeader, consumerId.getBytes(StandardCharsets.UTF_8));
+        var headers = List.of(responseIdHeader, responseTopicHeader);
+        kafkaProducer.produce(topic, key, request, headers, true);
+
+        future.handle((r, e) -> {
+            try {
+                watcher.close();
+            } catch (Exception ignored) { }
+            return 0;
+        });
+
+        return future;
     }
 
     private void waitInitialized() throws InterruptedException, ExecutionException, TimeoutException {

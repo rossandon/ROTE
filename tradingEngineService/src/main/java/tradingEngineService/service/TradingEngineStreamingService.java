@@ -26,6 +26,7 @@ import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
@@ -71,7 +72,8 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
 
     public void run() {
         try {
-            kafkaAdminClient.createTopic(TradingEngineServiceConsts.RequestTopic, 1);
+            kafkaAdminClient.createTopic(TradingEngineServiceConsts.WriteRequestTopic, 1);
+            kafkaAdminClient.createTopic(TradingEngineServiceConsts.ReadRequestTopic, 1);
             kafkaAdminClient.createTopic(TradingEngineServiceConsts.MarketDataTopic, 1);
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             throw new RuntimeException(e);
@@ -80,11 +82,15 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         var startingOffset = tradingEngineContextInstance.getContext().sequence;
         try {
             log.info("Running trading engine service; starting at offset '" + startingOffset + "'");
-            consumer.consume(TradingEngineServiceConsts.RequestTopic, startingOffset, false, this::handleKafkaRecord, this::handleControlMessage);
+
+            var topics = List.of(
+                    new RoteKafkaConsumer.TopicPartitionAndOffet(TradingEngineServiceConsts.WriteRequestTopic, 0, Optional.of(startingOffset)),
+                    new RoteKafkaConsumer.TopicPartitionAndOffet(TradingEngineServiceConsts.ReadRequestTopic, 0, Optional.empty())
+                    );
+
+            consumer.consumePartitions(topics, true, this::handleKafkaRecord, this::handleControlMessage);
             log.info("Stopped trading engine service");
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             log.error("Trading engine service quit", e);
             throw e;
         }

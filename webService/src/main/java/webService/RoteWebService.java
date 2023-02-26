@@ -17,4 +17,3 @@ public class RoteWebService {
         return new SimpleAsyncTaskExecutor();
     }
 }
-

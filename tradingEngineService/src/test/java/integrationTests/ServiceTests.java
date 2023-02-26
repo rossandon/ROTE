@@ -17,7 +17,7 @@ public class ServiceTests extends IntegrationTest {
     @Test
     public void orderShouldReject() throws Exception {
         var request = TradingEngineServiceRequest.limitOrder(10, 100, 1, "SPY", OrderBookSide.Buy);
-        var response = testClient.send(TradingEngineServiceConsts.RequestTopic, "123", request);
+        var response = testClient.send(TradingEngineServiceConsts.WriteRequestTopic, "123", request);
 
         assertNotNull(response.limitOrderResult());
         assertEquals(LimitOrderResultStatus.Rejected, response.limitOrderResult().type());

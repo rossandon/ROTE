@@ -19,6 +19,6 @@ public class IntegrationTest {
 
 
     protected TradingEngineServiceResponse send(TradingEngineServiceRequest request) throws Exception {
-        return testClient.send(TradingEngineServiceConsts.RequestTopic, "", request);
+        return testClient.send(TradingEngineServiceConsts.WriteRequestTopic, "", request);
     }
 }
