@@ -26,13 +26,11 @@ public class CookieSetSuccessHandler implements AuthenticationSuccessHandler {
                                         Authentication authentication) throws IOException {
 
         var token = (OAuth2AuthenticationToken) authentication;
-        var username = token.getName();
-        var authorities = token.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.joining(","));
+        var email = token.getPrincipal().getAttribute("email").toString();
+        //var authorities = token.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.joining(","));
 
         Map<String, String> claims = new HashMap<>();
-        claims.put("username", username);
-        claims.put("authorities", authorities);
-        var jwt = jwtHelper.createJwtForClaims(username, claims);
+        var jwt = jwtHelper.createJwtForClaims(email, claims);
 
         CookieUtils.addCookie(response, CookieConsts.ROTEAuthCookieName, jwt, 100000);
         response.sendRedirect("/system/whoami");

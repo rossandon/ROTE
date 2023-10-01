@@ -2,6 +2,7 @@ package webService.api;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import webService.api.models.WhoAmIResponse;
 
 import java.security.Principal;
 
@@ -13,7 +14,7 @@ class SystemController {
     }
 
     @GetMapping("system/whoami")
-    String whoami(Principal principal) {
-        return principal.getName();
+    WhoAmIResponse whoami(Principal principal) {
+        return new WhoAmIResponse(principal.getName());
     }
 }
