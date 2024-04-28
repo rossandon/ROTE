@@ -4,7 +4,7 @@ import shared.service.results.*;
 
 public record TradingEngineServiceResponse(LimitOrderResult limitOrderResult, GetBalanceResult getBalanceResult,
                                            CancelOrderResult cancelOrderResult, GetBalancesResult getBalancesResult,
-                                           OrderBookSnapshot marketDataUpdate, TradingEngineErrorResult tradingEngineErrorResult) {
+                                           OrderBookSnapshot orderBookSnapshot, TradingEngineErrorResult tradingEngineErrorResult) {
 
     public TradingEngineServiceResponse(LimitOrderResult result) {
         this(result, null, null, null, null, null);
