@@ -27,12 +27,11 @@ public class CookieSetSuccessHandler implements AuthenticationSuccessHandler {
 
         var token = (OAuth2AuthenticationToken) authentication;
         var email = token.getPrincipal().getAttribute("email").toString();
-        //var authorities = token.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.joining(","));
 
         Map<String, String> claims = new HashMap<>();
         var jwt = jwtHelper.createJwtForClaims(email, claims);
 
         CookieUtils.addCookie(response, CookieConsts.ROTEAuthCookieName, jwt, 100000);
-        response.sendRedirect("/system/whoami");
+        response.sendRedirect("/");
     }
 }
