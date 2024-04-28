@@ -7,6 +7,7 @@ import software.amazon.awscdk.services.ec2.Port;
 import software.amazon.awscdk.services.ec2.SecurityGroup;
 import software.amazon.awscdk.services.ec2.Vpc;
 import software.amazon.awscdk.services.ecr.assets.DockerImageAsset;
+import software.amazon.awscdk.services.ecr.assets.Platform;
 import software.amazon.awscdk.services.ecs.*;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskImageOptions;
@@ -47,19 +48,28 @@ public class RoteStack extends Stack {
                 .validation(CertificateValidation.fromDns(hostedZone))
                 .build();
 
+        var clientIdProp = "spring.security.oauth2.client.registration.google.client-id";
+
         var googleOAuthSecret = Secret.fromSecretCompleteArn(this, "GoogleAuthSecret", ManualResources.GoogleOAuthSecretArn);
         var clientSecretProp = "spring.security.oauth2.client.registration.google.client-secret";
-        var clientIdProp = "spring.security.oauth2.client.registration.google.client-id";
-        var secrets = Map.of(clientSecretProp, software.amazon.awscdk.services.ecs.Secret.fromSecretsManager(googleOAuthSecret));
+
+        var datadogApiKeySecret = Secret.fromSecretCompleteArn(this, "DatadogApiKeySecret", ManualResources.DatadogApiKeySecretArn);
+        var datadogApiKeyProp = "DD_API_KEY";
+
+        var secrets = Map.of(
+                clientSecretProp, software.amazon.awscdk.services.ecs.Secret.fromSecretsManager(googleOAuthSecret),
+                datadogApiKeyProp, software.amazon.awscdk.services.ecs.Secret.fromSecretsManager(datadogApiKeySecret));
 
         var tradingEngineServiceImage = DockerImageAsset.Builder.create(this, "TradingEngineImage")
                 .target("tradingEngineService")
+                .platform(Platform.LINUX_AMD64)
                 .directory("./")
                 .exclude(List.of(".gradle")) // Need to ignore .gradle outside
                 .build();
 
         var webServiceImage = DockerImageAsset.Builder.create(this, "WebServiceImage")
                 .target("webService")
+                .platform(Platform.LINUX_AMD64)
                 .directory("./")
                 .exclude(List.of(".gradle"))
                 .build();
