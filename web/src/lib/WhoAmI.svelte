@@ -9,7 +9,7 @@
         }
     }
 
-    let user: WhoAmIResponse | null
+    export let user: WhoAmIResponse | null = null
 
     async function getUsers() {
         try {
@@ -39,7 +39,7 @@
 </script>
 
 {#if user != null}
-    Hello, {user.name}
+    Hello, {user.name}. <a href="/system/logout">Logout</a>
 {/if}
 
 

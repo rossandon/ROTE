@@ -12,7 +12,7 @@
 
 <table>
   <tr>
-    <th>
+    <th style="min-width: 200px">
       Asset
     </th>
     <th>
