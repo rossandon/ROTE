@@ -4,24 +4,20 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.log4j.Logger;
-import org.springframework.stereotype.Component;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-@Component
-public class RoteKafkaAdminClient {
+public class RoteKafkaAdminClient implements AutoCloseable {
     private static final Logger log = Logger.getLogger(KafkaRequestResponseClient.class);
 
     private final AdminClient client;
     private final String namespace;
 
     public RoteKafkaAdminClient(KafkaConfigurationProvider kafkaConfigurationProvider) {
-        this.client = AdminClient.create(kafkaConfigurationProvider.buildProps());
+        this.client = AdminClient.create(kafkaConfigurationProvider.buildAdminProps());
         this.namespace = kafkaConfigurationProvider.getEnvironmentName();
     }
 
@@ -35,6 +31,13 @@ public class RoteKafkaAdminClient {
         catch (InterruptedException | ExecutionException e) {
             if (!(e.getCause() instanceof TopicExistsException))
                 throw new RuntimeException(e.getMessage(), e);
+            else {
+                log.info("Topic " + name + " already exists");
+            }
         }
+    }
+
+    public void close() {
+        this.client.close();
     }
 }

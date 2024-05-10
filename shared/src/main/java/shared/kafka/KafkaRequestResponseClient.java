@@ -15,24 +15,26 @@ public class KafkaRequestResponseClient<TKey, TRequest, TResponse> implements Ru
 
     private final RoteKafkaProducer<TKey, TRequest> kafkaProducer;
     private final RoteKafkaConsumer kafkaConsumer;
+    private final KafkaConfigurationProvider kafkaConfigurationProvider;
     private final String consumerId = UuidHelper.GetNewUuid() + "-responses";
     private final ResponseWatcher responseWatcher = new ResponseWatcher();
-    private final RoteKafkaAdminClient kafkaAdminClient;
     private final CompletableFuture<Object> initialized = new CompletableFuture<>();
     public final long timeout = 10;
 
 
     public KafkaRequestResponseClient(RoteKafkaProducer<TKey, TRequest> kafkaProducer,
                                       RoteKafkaConsumer kafkaConsumer,
-                                      RoteKafkaAdminClient kafkaAdminClient) {
+                                      KafkaConfigurationProvider kafkaConfigurationProvider) {
         this.kafkaProducer = kafkaProducer;
         this.kafkaConsumer = kafkaConsumer;
-        this.kafkaAdminClient = kafkaAdminClient;
+        this.kafkaConfigurationProvider = kafkaConfigurationProvider;
     }
 
     public void run() {
         try {
-            kafkaAdminClient.createTopic(consumerId, 1);
+            try (var client = new RoteKafkaAdminClient(this.kafkaConfigurationProvider)) {
+                client.createTopic(consumerId, 1);
+            }
             initialized.complete(null);
             kafkaConsumer.consumePartition(consumerId, 0, 0, false, this::handle);
         }

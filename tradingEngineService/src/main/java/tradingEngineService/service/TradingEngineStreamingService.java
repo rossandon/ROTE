@@ -4,10 +4,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
-import shared.kafka.RoteKafkaAdminClient;
-import shared.kafka.RoteKafkaConsumer;
-import shared.kafka.KafkaConsts;
-import shared.kafka.RoteKafkaProducer;
+import shared.kafka.*;
 import shared.orderBook.LimitOrderResultStatus;
 import shared.service.TradingEngineServiceConsts;
 import shared.service.TradingEngineServiceRequest;
@@ -38,7 +35,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     private final RoteKafkaConsumer consumer;
     private final RoteKafkaProducer<String, TradingEngineServiceResponse> kafkaProducer;
     private final RoteKafkaProducer<String, OrderBookSnapshot> marketDataProducer;
-    private final RoteKafkaAdminClient kafkaAdminClient;
+    private final KafkaConfigurationProvider kafkaConfigurationProvider;
     private final TradingEngine tradingEngine;
     private final ReferentialInventory referentialInventory;
     private final TradingEngineContextInstance tradingEngineContextInstance;
@@ -48,14 +45,15 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     public TradingEngineStreamingService(RoteKafkaConsumer requestConsumer,
                                          RoteKafkaProducer<String, TradingEngineServiceResponse> responseProducer,
                                          RoteKafkaProducer<String, OrderBookSnapshot> marketDataProducer,
-                                         RoteKafkaAdminClient kafkaAdminClient, TradingEngine tradingEngine,
+                                         KafkaConfigurationProvider kafkaConfigurationProvider,
+                                         TradingEngine tradingEngine,
                                          ReferentialInventory referentialInventory,
                                          TradingEngineContextInstance tradingEngineContextInstance,
                                          ITradingEngineContextPersistor tradingContextPersistor) {
         this.consumer = requestConsumer;
         this.kafkaProducer = responseProducer;
         this.marketDataProducer = marketDataProducer;
-        this.kafkaAdminClient = kafkaAdminClient;
+        this.kafkaConfigurationProvider = kafkaConfigurationProvider;
         this.tradingEngine = tradingEngine;
         this.referentialInventory = referentialInventory;
         this.tradingEngineContextInstance = tradingEngineContextInstance;
@@ -72,9 +70,11 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
 
     public void run() {
         try {
-            kafkaAdminClient.createTopic(TradingEngineServiceConsts.WriteRequestTopic, 1);
-            kafkaAdminClient.createTopic(TradingEngineServiceConsts.ReadRequestTopic, 1);
-            kafkaAdminClient.createTopic(TradingEngineServiceConsts.MarketDataTopic, 1);
+            try (var adminClient = new RoteKafkaAdminClient(this.kafkaConfigurationProvider)) {
+                adminClient.createTopic(TradingEngineServiceConsts.WriteRequestTopic, 1);
+                adminClient.createTopic(TradingEngineServiceConsts.ReadRequestTopic, 1);
+                adminClient.createTopic(TradingEngineServiceConsts.MarketDataTopic, 1);
+            }
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             throw new RuntimeException(e);
         }

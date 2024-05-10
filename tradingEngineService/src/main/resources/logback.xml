@@ -3,6 +3,10 @@
         <destination>intake.logs.datadoghq.com:10516</destination>
         <keepAliveDuration>20 seconds</keepAliveDuration>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <fieldNames>
+                <logger>logger.name</logger>
+            </fieldNames>
+            <customFields>{"source": "java", "service": "tradingEngineService"}</customFields>
             <prefix class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
                 <layout class="ch.qos.logback.classic.PatternLayout">
                     <pattern>${DD_API_KEY} %mdc{keyThatDoesNotExist}</pattern>

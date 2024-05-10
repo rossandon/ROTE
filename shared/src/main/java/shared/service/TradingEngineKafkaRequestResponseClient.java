@@ -1,10 +1,7 @@
 package shared.service;
 
-import shared.kafka.KafkaRequestResponseClient;
+import shared.kafka.*;
 import org.springframework.stereotype.Component;
-import shared.kafka.RoteKafkaAdminClient;
-import shared.kafka.RoteKafkaConsumer;
-import shared.kafka.RoteKafkaProducer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -20,8 +17,8 @@ public class TradingEngineKafkaRequestResponseClient extends KafkaRequestRespons
             TradingEngineServiceRequestType.Error,
     }).toList();
 
-    public TradingEngineKafkaRequestResponseClient(RoteKafkaProducer<String, TradingEngineServiceRequest> kafkaProducer, RoteKafkaConsumer kafkaConsumer, RoteKafkaAdminClient kafkaAdminClient) {
-        super(kafkaProducer, kafkaConsumer, kafkaAdminClient);
+    public TradingEngineKafkaRequestResponseClient(RoteKafkaProducer<String, TradingEngineServiceRequest> kafkaProducer, RoteKafkaConsumer kafkaConsumer, KafkaConfigurationProvider kafkaConfigurationProvider) {
+        super(kafkaProducer, kafkaConsumer, kafkaConfigurationProvider);
     }
 
     public TradingEngineServiceResponse send(TradingEngineServiceRequest request) throws Exception {

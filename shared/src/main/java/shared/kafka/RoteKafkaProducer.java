@@ -17,7 +17,7 @@ public class RoteKafkaProducer<TProducerKey, TProducerValue> implements AutoClos
     private final KafkaProducer<TProducerKey, TProducerValue> producer;
 
     public RoteKafkaProducer(KafkaConfigurationProvider kafkaConfigurationProvider) {
-        var props = kafkaConfigurationProvider.buildProps();
+        var props = kafkaConfigurationProvider.buildProducerProps();
         this.namespace = kafkaConfigurationProvider.getEnvironmentName();
         this.producer = new KafkaProducer<>(props);
     }

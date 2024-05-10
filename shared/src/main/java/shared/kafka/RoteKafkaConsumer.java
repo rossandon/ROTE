@@ -29,7 +29,7 @@ public class RoteKafkaConsumer implements AutoCloseable {
 
     public RoteKafkaConsumer(KafkaConfigurationProvider kafkaConfigurationProvider) {
         this.namespace = kafkaConfigurationProvider.getEnvironmentName();
-        this.props = kafkaConfigurationProvider.buildProps();
+        this.props = kafkaConfigurationProvider.buildConsumerProps();
     }
 
     public <TKey, TValue> void consumePartitions(Collection<TopicPartitionAndOffet> topics, boolean autoCommit,
