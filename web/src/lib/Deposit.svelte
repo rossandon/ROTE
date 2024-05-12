@@ -1,4 +1,8 @@
 <script>
+    import { createEventDispatcher } from 'svelte';
+
+    const dispatch = createEventDispatcher();
+
     const handleDeposit = e => {
         // getting the action url
         const ACTION_URL = e.target.action
@@ -11,23 +15,18 @@
             data.append(key, value)
         }
 
-        // check the form's method and send the fetch accordingly
-        if (e.target.method.toLowerCase() === 'get') {
-            fetch(`${ACTION_URL}?${data}`)
-        }
-        else {
-            fetch(ACTION_URL, {
-                method: 'POST',
-                body: data
-            })
-        }
+        fetch(ACTION_URL, {
+            method: 'POST',
+            body: data
+        }).then(value => {
+            e.target.reset()
+            dispatch('deposit', {})
+        })
     }
 </script>
 
 <form method="post" action="/balances/deposit" on:submit|preventDefault={handleDeposit}>
-    Asset: <input type="text" name="assetCode">
-    <br/>
-    Amount: <input type="text" name="amount">
-    <br/>
+    <label>Asset<input type="text" name="assetCode" placeholder="USD"></label>
+    <label>Amount<input type="text" name="amount" placeholder="100"></label>
     <input type="submit" value="Deposit">
 </form>

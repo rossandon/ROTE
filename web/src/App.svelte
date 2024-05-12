@@ -5,16 +5,29 @@
   import Deposit from "./lib/Deposit.svelte";
 
   let user: WhoAmIResponse | null;
+  let refreshBalances;
+
+  function handleDeposit() {
+    refreshBalances()
+  }
 </script>
 
 <main>
-  <WhoAmI bind:user={user} />
-  {#if user != null}
-    <Balances />
-    <Deposit />
-  {:else}
-    <a href="/oauth2/authorization/google">Login with Google</a>
-  {/if}
+  <header>
+    <WhoAmI bind:user={user} />
+  </header>
+    {#if user != null}
+      <div class="test">
+        <div>
+          <Balances bind:refresh={refreshBalances} />
+        </div>
+        <div>
+          <Deposit on:deposit={handleDeposit} />
+        </div>
+      </div>
+    {:else}
+      <a href="/oauth2/authorization/google">Login with Google</a>
+    {/if}
 </main>
 
 <style>

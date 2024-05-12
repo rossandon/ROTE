@@ -3,10 +3,14 @@
 
   let balances = {}
 
-  onMount(() => {
+  export function refresh() {
     fetch('balances/list')
             .then(response => response.json() as Promise<{data: Object}>)
             .then(result => balances = result)
+  }
+
+  onMount(() => {
+    refresh()
   })
 </script>
 

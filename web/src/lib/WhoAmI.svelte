@@ -39,7 +39,7 @@
 </script>
 
 {#if user != null}
-    Hello, {user.name}. <a href="/system/logout">Logout</a>
+    Hello, {user.name}. <a href="/logout">Logout</a>
 {/if}
 
 
