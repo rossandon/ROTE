@@ -57,7 +57,7 @@ public class OrderBook {
     }
 
     private OrderBookEntry addRestingOrder(OrderBookLimitOrder order) {
-        var newEntry = new OrderBookEntry(order.size(), order.price(), order.accountId(), idCounter++);
+        var newEntry = new OrderBookEntry(order.size(), order.price(), order.accountId(), idCounter++, order.side());
         var orderBookEntries = getRestingSide(order.side());
         for (int i = 0; i < orderBookEntries.size(); i++) {
             var entry = orderBookEntries.get(i);

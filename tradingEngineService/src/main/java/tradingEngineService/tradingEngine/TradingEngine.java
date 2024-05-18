@@ -51,7 +51,9 @@ public class TradingEngine {
         var cancelledOrder = getContext().ensureOrderBook(instrument).orderBook().cancelOrder(orderId);
 
         if (cancelledOrder != null) {
-            adjustBalance(account, instrument.quoteAsset(), cancelledOrder.fundingSize());
+            var fundingAsset = cancelledOrder.side() == OrderBookSide.Buy ? instrument.quoteAsset() : instrument.baseAsset();
+            var fundingSize = cancelledOrder.side() == OrderBookSide.Buy ? cancelledOrder.size() * cancelledOrder.price() : cancelledOrder.size();
+            adjustBalance(account, fundingAsset, fundingSize);
             return true;
         } else {
             return false;
@@ -68,19 +70,20 @@ public class TradingEngine {
         var m = trade.takerSide() == OrderBookSide.Buy ? 1 : -1;
         getContext().adjustBalance(trade.takerAccountId(), instrument.baseAsset(), trade.size() * m);
         getContext().adjustBalance(trade.makerAccountId(), instrument.baseAsset(), trade.size() * -1 * m);
-        getContext().adjustBalance(trade.takerAccountId(), instrument.quoteAsset(), trade.takerAccountId() * m * -1);
+        getContext().adjustBalance(trade.takerAccountId(), instrument.quoteAsset(), trade.size() * trade.price() * m * -1);
     }
 
     private void refundFunding(LimitOrder order) {
         var requiredFunds = order.getRequiredFunds();
-        getContext().adjustBalance(order.account(), order.instrument().quoteAsset(), requiredFunds);
+        getContext().adjustBalance(order.account(), order.fundingAsset(), requiredFunds);
     }
 
     private boolean tryReserveFunding(LimitOrder order) {
-        var funds = getContext().getBalance(order.account(), order.instrument().quoteAsset());
+        var fundingAsset = order.fundingAsset();
+        var funds = getContext().getBalance(order.account(), fundingAsset);
         var requiredFunds = order.getRequiredFunds();
         if (funds >= requiredFunds) {
-            getContext().adjustBalance(order.account(), order.instrument().quoteAsset(), requiredFunds * -1);
+            getContext().adjustBalance(order.account(), fundingAsset, requiredFunds * -1);
             return true;
         }
         return false;

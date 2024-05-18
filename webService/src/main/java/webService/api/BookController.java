@@ -17,14 +17,14 @@ public class BookController {
 
         @GetMapping("book")
         Future<GetBookResponse> getBooks(Principal principal) throws Exception {
-            var future = client.sendAsync(TradingEngineServiceRequest.getBook("btc/usd"));
+            var future = client.sendAsync(TradingEngineServiceRequest.getBook("SPY"));
             return future.thenApply(resp -> {
                 try {
                     resp.assertOk();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-                return new GetBookResponse(resp.orderBookSnapshot());
+                return new GetBookResponse(principal.getName().hashCode(), resp.orderBookSnapshot());
             });
         }
 }

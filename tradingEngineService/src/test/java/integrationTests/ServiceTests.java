@@ -60,7 +60,7 @@ public class ServiceTests extends IntegrationTest {
     @Test
     public void executeTrade() throws Exception {
         send(TradingEngineServiceRequest.adjustBalance(1000, 1, "USD"));
-        send(TradingEngineServiceRequest.adjustBalance(1000, 2, "USD"));
+        send(TradingEngineServiceRequest.adjustBalance(1, 2, "SPY"));
         var response = send(TradingEngineServiceRequest.limitOrder(1, 100, 1, "SPY", OrderBookSide.Buy));
         assertEquals(LimitOrderResultStatus.Ok, response.limitOrderResult().type());
         response = send(TradingEngineServiceRequest.limitOrder(1, 99, 2, "SPY", OrderBookSide.Sell));

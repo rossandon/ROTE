@@ -88,7 +88,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
                     new RoteKafkaConsumer.TopicPartitionAndOffet(TradingEngineServiceConsts.ReadRequestTopic, 0, Optional.empty())
                     );
 
-            consumer.consumePartitions(topics, true, this::handleKafkaRecord, this::handleControlMessage);
+            consumer.consumePartitions(topics, false, this::handleKafkaRecord, this::handleControlMessage);
             log.info("Stopped trading engine service");
         } catch (Exception e) {
             log.error("Trading engine service quit", e);

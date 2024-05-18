@@ -5,8 +5,10 @@ import shared.service.results.OrderBookSnapshot;
 
 import java.util.List;
 
-public record GetBookResponse(String instrumentCode, List<OrderBookEntry> bids, List<OrderBookEntry> asks) {
-    public GetBookResponse(OrderBookSnapshot orderBookSnapshot) {
-        this(orderBookSnapshot.instrumentCode(), orderBookSnapshot.bids(), orderBookSnapshot.asks());
+public record GetBookResponse(String instrumentCode, List<OrderBookEntryModel> bids, List<OrderBookEntryModel> asks) {
+    public GetBookResponse(long currentAccountId, OrderBookSnapshot orderBookSnapshot) {
+        this(orderBookSnapshot.instrumentCode(),
+                orderBookSnapshot.bids().stream().map(e -> new OrderBookEntryModel(currentAccountId, e)).toList(),
+                orderBookSnapshot.asks().stream().map(e -> new OrderBookEntryModel(currentAccountId, e)).toList());
     }
 }

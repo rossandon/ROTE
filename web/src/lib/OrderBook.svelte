@@ -1,33 +1,42 @@
 <script lang="ts">
     import { onMount } from 'svelte'
+    import {OrderBookResponse} from "./Models";
+    import OrderBookEntryList from "./OrderBookEntryList.svelte";
 
-    let balances = {}
+    let bookResponse: OrderBookResponse
+    export let instrumentCode: string;
+
+    export function refresh() {
+        fetch(`book?instrument=${instrumentCode}`)
+            .then(response => response.json() as Promise<OrderBookResponse>)
+            .then(result => {
+                bookResponse = result;
+            })
+    }
 
     onMount(() => {
-        fetch('balances/list')
-            .then(response => response.json() as Promise<{data: Object}>)
-            .then(result => balances = result)
+        refresh()
     })
 </script>
 
+{#if bookResponse != null}
 <table>
-    <tr>
-        <th>
-            Asset
-        </th>
-        <th>
-            Balance
-        </th>
-    </tr>
-    {#each Object.keys(balances) as balance}
+    <thead>
         <tr>
-            <td>
-                {balance}
-            </td>
-            <td>
-                {balances[balance]}
-            </td>
+            <th>
+                Price
+            </th>
+            <th>
+                Size
+            </th>
+            <th></th>
         </tr>
-    {/each}
+    </thead>
+    <tbody>
+        <OrderBookEntryList instrumentCode="{instrumentCode}" bookEntryList={bookResponse.asks}></OrderBookEntryList>
+        <tr><td colspan="3">Mid</td></tr>
+        <OrderBookEntryList instrumentCode="{instrumentCode}" bookEntryList={bookResponse.bids}></OrderBookEntryList>
+    </tbody>
 </table>
+{/if}
 

@@ -15,23 +15,27 @@
 </script>
 
 <table>
-  <tr>
-    <th style="min-width: 200px">
-      Asset
-    </th>
-    <th>
-      Balance
-    </th>
-  </tr>
-  {#each Object.keys(balances) as balance}
+  <thead>
     <tr>
-      <td>
-        {balance}
-      </td>
-      <td>
-        {balances[balance]}
-      </td>
+      <th>
+        Asset
+      </th>
+      <th>
+        Balance
+      </th>
     </tr>
+  </thead>
+  <tbody>
+    {#each Object.keys(balances) as balance}
+      <tr>
+        <td>
+          {balance}
+        </td>
+        <td>
+          {balances[balance]}
+        </td>
+      </tr>
     {/each}
+  </tbody>
 </table>
 
