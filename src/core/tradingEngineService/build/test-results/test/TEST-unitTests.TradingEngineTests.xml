@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="unitTests.TradingEngineTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2024-05-25T20:02:09" hostname="RyansMacStudio" time="0.0">
+  <properties/>
+  <testcase name="fundingCheckShouldReject()" classname="unitTests.TradingEngineTests" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

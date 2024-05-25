@@ -1,1 +1,1 @@
-docker compose --project-directory dev-infra up --abort-on-container-exit --force-recreate
+docker compose --project-directory hosting/dev up --abort-on-container-exit --force-recreate

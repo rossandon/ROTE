@@ -1,7 +1,7 @@
 # Gradle
 .gradle
 **/build/
-!src/**/build/
+!src/core/**/build/
 gradle-app.setting
 !gradle-wrapper.jar
 !gradle-wrapper.properties

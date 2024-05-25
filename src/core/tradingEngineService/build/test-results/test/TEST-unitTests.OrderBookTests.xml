@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="unitTests.OrderBookTests" tests="5" skipped="0" failures="0" errors="0" timestamp="2024-05-25T20:02:09" hostname="RyansMacStudio" time="0.002">
+  <properties/>
+  <testcase name="cancelledAskShouldBeRemoved()" classname="unitTests.OrderBookTests" time="0.0"/>
+  <testcase name="filledOrdersShouldBeRemoved()" classname="unitTests.OrderBookTests" time="0.001"/>
+  <testcase name="cancelledBidShouldBeRemoved()" classname="unitTests.OrderBookTests" time="0.0"/>
+  <testcase name="limitOrderShouldRest()" classname="unitTests.OrderBookTests" time="0.001"/>
+  <testcase name="shouldNotBeAbleToCrossSelf()" classname="unitTests.OrderBookTests" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

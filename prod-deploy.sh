@@ -1,0 +1,1 @@
+cd hosting/prod && cdk deploy
