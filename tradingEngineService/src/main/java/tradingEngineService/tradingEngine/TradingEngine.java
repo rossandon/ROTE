@@ -67,10 +67,14 @@ public class TradingEngine {
     }
 
     private void bookTrade(OrderBookTrade trade, Instrument instrument) {
-        var m = trade.takerSide() == OrderBookSide.Buy ? 1 : -1;
-        getContext().adjustBalance(trade.takerAccountId(), instrument.baseAsset(), trade.size() * m);
-        getContext().adjustBalance(trade.makerAccountId(), instrument.baseAsset(), trade.size() * -1 * m);
-        getContext().adjustBalance(trade.takerAccountId(), instrument.quoteAsset(), trade.size() * trade.price() * m * -1);
+        if (trade.takerSide() == OrderBookSide.Buy) {
+            getContext().adjustBalance(trade.takerAccountId(), instrument.baseAsset(), trade.size());
+            getContext().adjustBalance(trade.makerAccountId(), instrument.quoteAsset(), trade.size() * trade.price());
+        } else {
+            getContext().adjustBalance(trade.takerAccountId(), instrument.quoteAsset(), trade.size() * trade.price());
+            getContext().adjustBalance(trade.makerAccountId(), instrument.baseAsset(), trade.size());
+        }
+
     }
 
     private void refundFunding(LimitOrder order) {

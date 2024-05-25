@@ -15,8 +15,9 @@ public class OrderBook {
         if (containsCross(executableEntries, order))
             return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Rejected, null, null);
         var executionResult = executeLimitOrder(order, allEntries, executableEntries);
-        if (!executionResult.partial())
+        if (!executionResult.partial()) {
             return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Filled, executionResult.trades(), null);
+        }
         var restingOrder = addRestingOrder(executionResult.getRestingOrder());
         if (executionResult.trades().isEmpty())
             return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Resting, null, restingOrder);
@@ -76,7 +77,7 @@ public class OrderBook {
     }
 
     private OrderBookExecutionResult executeLimitOrder(OrderBookLimitOrder order, ArrayList<OrderBookEntry> allEntries, ArrayList<OrderBookEntry> executableEntries) {
-        var totalSize = 0;
+        var totalSize = 0L;
         var trades = new ArrayList<OrderBookTrade>();
 
         for (var i = 0; i < executableEntries.size(); i++) {
@@ -87,10 +88,10 @@ public class OrderBook {
             trades.add(trade);
             totalSize += trade.size();
             if (totalSize == order.size())
-                return new OrderBookExecutionResult(order, totalSize, trades);
+                break;
         }
 
-        while (allEntries.size() > 0) {
+        while (!allEntries.isEmpty()) {
             if (allEntries.get(0).size() == 0)
                 allEntries.remove(0);
             else

@@ -33,9 +33,9 @@
         </tr>
     </thead>
     <tbody>
-        <OrderBookEntryList instrumentCode="{instrumentCode}" bookEntryList={bookResponse.asks}></OrderBookEntryList>
+        <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={bookResponse.asks}></OrderBookEntryList>
         <tr><td colspan="3">Mid</td></tr>
-        <OrderBookEntryList instrumentCode="{instrumentCode}" bookEntryList={bookResponse.bids}></OrderBookEntryList>
+        <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={bookResponse.bids}></OrderBookEntryList>
     </tbody>
 </table>
 {/if}

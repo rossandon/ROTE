@@ -27,7 +27,7 @@
     {#if user != null}
       <div class="row">
         <div>
-          <OrderBook bind:refresh={refreshBook} instrumentCode="SPY"></OrderBook>
+          <OrderBook on:order-canceled={handleOrder} bind:refresh={refreshBook} instrumentCode="SPY"></OrderBook>
         </div>
         <div>
           <PlaceOrder on:submit-order={handleOrder}></PlaceOrder>

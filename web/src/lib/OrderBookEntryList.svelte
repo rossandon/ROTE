@@ -1,5 +1,8 @@
 <script lang="ts">
     import type {OrderBookEntry} from "./Models";
+    import { createEventDispatcher } from 'svelte';
+
+    const dispatch = createEventDispatcher();
 
     export let bookEntryList: OrderBookEntry[]
     export let instrumentCode: string
@@ -20,6 +23,7 @@
             method: 'POST',
             body: data
         }).then(value => {
+            dispatch('order-canceled')
         })
     }
 </script>
