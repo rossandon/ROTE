@@ -13,8 +13,11 @@ public class Main {
 
         var usd = new Asset("USD", 1);
         var spy = new Asset("SPY", 2);
+        var btc = new Asset("BTC", 3);
         referentialInventory.addAsset(usd);
         referentialInventory.addAsset(spy);
+        referentialInventory.addAsset(btc);
         referentialInventory.addInstrument(new Instrument("SPY", spy, usd, 1));
+        referentialInventory.addInstrument(new Instrument("BTC/USD", btc, usd, 2));
     }
 }

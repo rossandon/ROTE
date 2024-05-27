@@ -96,4 +96,9 @@ public class TradingEngine {
     private TradingEngineContext getContext() {
         return tradingEngineContextInstance.getContext();
     }
+
+    public boolean cancelAll(Account account, Instrument instrument) {
+        var book = getContext().ensureOrderBook(instrument);
+        return book.orderBook().cancelAll(account.accountId());
+    }
 }

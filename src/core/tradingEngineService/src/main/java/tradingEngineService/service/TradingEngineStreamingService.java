@@ -65,6 +65,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         handlers.put(TradingEngineServiceRequestType.LimitOrder, this::handleLimitOrderRequest);
         handlers.put(TradingEngineServiceRequestType.AdjustBalance, this::handleAdjustBalanceRequest);
         handlers.put(TradingEngineServiceRequestType.Cancel, this::handleCancelRequest);
+        handlers.put(TradingEngineServiceRequestType.CancelAll, this::handleCancelAllRequest);
         handlers.put(TradingEngineServiceRequestType.Error, this::handleErrorRequest);
     }
 
@@ -185,6 +186,13 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     private TradingEngineServiceResponse handleCancelRequest(TradingEngineServiceRequest request) throws Exception {
         var instrument = referentialInventory.lookupInstrumentOrThrow(request.instrumentCode());
         var isCancelled = tradingEngine.cancel(new Account(request.accountId()), instrument, request.orderId());
+        if (isCancelled) sendOrderBookSnapshotUpdate(instrument);
+        return new TradingEngineServiceResponse(new CancelOrderResult(isCancelled));
+    }
+
+    private TradingEngineServiceResponse handleCancelAllRequest(TradingEngineServiceRequest request) throws Exception {
+        var instrument = referentialInventory.lookupInstrumentOrThrow(request.instrumentCode());
+        var isCancelled = tradingEngine.cancelAll(new Account(request.accountId()), instrument);
         if (isCancelled) sendOrderBookSnapshotUpdate(instrument);
         return new TradingEngineServiceResponse(new CancelOrderResult(isCancelled));
     }

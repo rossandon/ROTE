@@ -83,4 +83,15 @@ public class OrderBookTests {
         assertEquals(OrderBookLimitOrderResultStatus.Resting, res1.status());
         assertEquals(OrderBookLimitOrderResultStatus.Rejected, res2.status());
     }
+
+    @Test
+    public void cancelAll() {
+        var book = new OrderBook();
+        var res1 = book.processOrder(new OrderBookLimitOrder(10, 100, OrderBookSide.Buy, 1));
+        var res2 = book.processOrder(new OrderBookLimitOrder(10, 100, OrderBookSide.Buy, 2));
+        book.cancelAll(1);
+
+        assertEquals(1, book.bids.size());
+        assertEquals(2, book.bids.get(0).accountId());
+    }
 }

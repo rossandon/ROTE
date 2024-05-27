@@ -8,4 +8,5 @@ public enum TradingEngineServiceRequestType {
     GetBook,
     Cancel,
     Error,
+    CancelAll,
 }

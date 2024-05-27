@@ -114,4 +114,20 @@ public class OrderBook {
         }
         return executableEntries;
     }
+
+    public boolean cancelAll(long accountId) {
+        return cancelAll(accountId, bids) | cancelAll(accountId, asks);
+    }
+
+    private boolean cancelAll(long accountId, ArrayList<OrderBookEntry> entries) {
+        var any = false;
+        for (var i = entries.size() - 1; i >= 0; i--) {
+            var entry = entries.get(i);
+            if (entry.accountId() == accountId) {
+                entries.remove(i);
+                any = true;
+            }
+        }
+        return any;
+    }
 }
