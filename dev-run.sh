@@ -1,3 +1,4 @@
+cd src/core
 ./gradlew classes
 export SPRING_PROFILES_ACTIVE='dev'
 

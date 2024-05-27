@@ -63,14 +63,14 @@ public class RoteStack extends Stack {
         var tradingEngineServiceImage = DockerImageAsset.Builder.create(this, "TradingEngineImage")
                 .target("tradingEngineService")
                 .platform(Platform.LINUX_AMD64)
-                .directory("./")
+                .directory("../../src/core")
                 .exclude(List.of(".gradle")) // Need to ignore .gradle outside
                 .build();
 
         var webServiceImage = DockerImageAsset.Builder.create(this, "WebServiceImage")
                 .target("webService")
                 .platform(Platform.LINUX_AMD64)
-                .directory("./")
+                .directory("../../src/core")
                 .exclude(List.of(".gradle"))
                 .build();
 
