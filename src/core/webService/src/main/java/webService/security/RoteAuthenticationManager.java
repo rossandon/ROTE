@@ -2,6 +2,8 @@ package webService.security;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -12,7 +14,7 @@ import java.util.Objects;
 
 @Component
 @ConfigurationProperties(prefix = "backdoor-auth")
-public class RoteAuthenticationManager implements AuthenticationManager {
+public class RoteAuthenticationManager implements AuthenticationProvider {
     private String password;
 
     public String getPassword() {
@@ -33,5 +35,10 @@ public class RoteAuthenticationManager implements AuthenticationManager {
             return new UsernamePasswordAuthenticationToken(authentication.getPrincipal(), null, new ArrayList<>());
         }
         return authentication;
+    }
+
+    @Override
+    public boolean supports(Class<?> authentication) {
+        return authentication == UsernamePasswordAuthenticationToken.class;
     }
 }
