@@ -1,5 +1,6 @@
 package webService.security;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -10,6 +11,10 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 public class HttpSecurityConfig {
+
+    @Autowired
+    RoteAuthenticationManager roteAuthenticationManager;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable);
@@ -24,7 +29,9 @@ public class HttpSecurityConfig {
                 r.anyRequest()
                         .authenticated();
             })
-            .oauth2Login(Customizer.withDefaults());
+            .httpBasic(Customizer.withDefaults())
+            .oauth2Login(Customizer.withDefaults())
+            .authenticationManager(roteAuthenticationManager);
 
         return http.build();
     }

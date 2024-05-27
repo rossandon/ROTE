@@ -11,7 +11,6 @@ import org.springframework.core.task.TaskExecutor;
 @ComponentScan({"webService", "shared"})
 @ConfigurationPropertiesScan({"webService", "shared"})
 public class RoteWebService {
-
     @Bean
     public TaskExecutor getExecutor() {
         return new SimpleAsyncTaskExecutor();

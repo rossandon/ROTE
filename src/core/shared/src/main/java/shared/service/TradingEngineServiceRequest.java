@@ -28,6 +28,10 @@ public record TradingEngineServiceRequest(TradingEngineServiceRequestType type, 
         return new TradingEngineServiceRequest(TradingEngineServiceRequestType.Cancel, 0, 0, accountId, instrumentCode, OrderBookSide.Buy, null, orderId);
     }
 
+    public static TradingEngineServiceRequest cancelAll(long accountId, String instrumentCode) {
+        return new TradingEngineServiceRequest(TradingEngineServiceRequestType.CancelAll, 0, 0, accountId, instrumentCode, OrderBookSide.Buy, null, 0);
+    }
+
     public static TradingEngineServiceRequest error() {
         return new TradingEngineServiceRequest(TradingEngineServiceRequestType.Error, 0, 0, 0, null, OrderBookSide.Buy, null, 0);
     }

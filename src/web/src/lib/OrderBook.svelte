@@ -7,7 +7,7 @@
     export let instrumentCode: string;
 
     export function refresh() {
-        fetch(`book?instrument=${instrumentCode}`)
+        fetch(`book?instrumentCode=${instrumentCode}`)
             .then(response => response.json() as Promise<OrderBookResponse>)
             .then(result => {
                 bookResponse = result;

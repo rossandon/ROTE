@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import shared.service.TradingEngineKafkaRequestResponseClient;
 import shared.service.TradingEngineServiceRequest;
+import webService.security.RoteUserContext;
 
 import java.security.Principal;
 import java.util.HashMap;
@@ -19,8 +20,8 @@ public class BalanceController {
     TradingEngineKafkaRequestResponseClient client;
 
     @GetMapping("balances/list")
-    Future<HashMap<String, Long>> list(Principal principal) throws Exception {
-        var future = client.sendAsync(TradingEngineServiceRequest.getBalances(principal.getName().hashCode()));
+    Future<HashMap<String, Long>> list(RoteUserContext roteUserContext) throws Exception {
+        var future = client.sendAsync(TradingEngineServiceRequest.getBalances(roteUserContext.getAccountId()));
         return future.thenApply(resp -> {
             try {
                 resp.assertOk();
@@ -32,8 +33,8 @@ public class BalanceController {
     }
 
     @PostMapping("balances/deposit")
-    void deposit(Principal principal, @RequestParam("assetCode") String assetCode, @RequestParam("amount") Long amount) throws Exception {
-        var resp = client.send(TradingEngineServiceRequest.adjustBalance(amount, principal.getName().hashCode(), assetCode));
+    void deposit(RoteUserContext roteUserContext, @RequestParam("assetCode") String assetCode, @RequestParam("amount") Long amount) throws Exception {
+        var resp = client.send(TradingEngineServiceRequest.adjustBalance(amount, roteUserContext.getAccountId(), assetCode));
         resp.assertOk();
     }
 }

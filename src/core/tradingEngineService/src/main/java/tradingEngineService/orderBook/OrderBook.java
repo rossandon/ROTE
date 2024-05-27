@@ -13,15 +13,15 @@ public class OrderBook {
         var allEntries = getExecutionSide(order.side());
         var executableEntries = getExecutableEntries(order, allEntries);
         if (containsCross(executableEntries, order))
-            return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Rejected, null, null);
+            return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Rejected, "Cross", null, null);
         var executionResult = executeLimitOrder(order, allEntries, executableEntries);
         if (!executionResult.partial()) {
-            return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Filled, executionResult.trades(), null);
+            return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Filled, null, executionResult.trades(), null);
         }
         var restingOrder = addRestingOrder(executionResult.getRestingOrder());
         if (executionResult.trades().isEmpty())
-            return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Resting, null, restingOrder);
-        return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Partial, executionResult.trades(), restingOrder);
+            return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Resting, null,null, restingOrder);
+        return new OrderBookLimitOrderResult(OrderBookLimitOrderResultStatus.Partial, null, executionResult.trades(), restingOrder);
     }
 
     public OrderBookEntry cancelOrder(long id) {
@@ -115,19 +115,24 @@ public class OrderBook {
         return executableEntries;
     }
 
-    public boolean cancelAll(long accountId) {
-        return cancelAll(accountId, bids) | cancelAll(accountId, asks);
+    public ArrayList<OrderBookEntry> cancelAll(long accountId) {
+        var cancelled = new ArrayList<OrderBookEntry>();
+        cancelled.addAll(cancelAll(accountId, bids));
+        cancelled.addAll(cancelAll(accountId, asks));
+        return cancelled;
     }
 
-    private boolean cancelAll(long accountId, ArrayList<OrderBookEntry> entries) {
+    private ArrayList<OrderBookEntry> cancelAll(long accountId, ArrayList<OrderBookEntry> entries) {
+        var cancelled = new ArrayList<OrderBookEntry>();
         var any = false;
         for (var i = entries.size() - 1; i >= 0; i--) {
             var entry = entries.get(i);
             if (entry.accountId() == accountId) {
+                cancelled.add(entry);
                 entries.remove(i);
                 any = true;
             }
         }
-        return any;
+        return cancelled;
     }
 }

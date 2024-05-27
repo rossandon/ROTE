@@ -28,7 +28,6 @@ public class BinanceQuoteProvider(ILogger<BinanceQuoteProvider> logger) : Backgr
                         continue;
                     lock (this)
                         _latestQuote = message;
-                    Console.WriteLine($"{message.BidPrice} - {message.AskPrice}");
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -56,16 +55,16 @@ public class BinanceQuote
     public string Symbol { get; set; }
 
     [JsonProperty("b")]
-    public string BidPrice { get; set; }
+    public decimal BidPrice { get; set; }
 
     [JsonProperty("B")]
-    public string BidSize { get; set; }
+    public decimal BidSize { get; set; }
 
     [JsonProperty("a")]
-    public string AskPrice { get; set; }
+    public decimal AskPrice { get; set; }
 
     [JsonProperty("A")]
-    public string AskSize { get; set; }
+    public decimal AskSize { get; set; }
 
     [JsonProperty("T")]
     public long T { get; set; }

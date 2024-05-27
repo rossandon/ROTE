@@ -31,33 +31,37 @@ public class TradingEngine {
     public LimitOrderResult limitOrder(LimitOrder order) {
         var hasFunding = tryReserveFunding(order);
         if (!hasFunding)
-            return new LimitOrderResult(LimitOrderResultStatus.Rejected, null);
+            return new LimitOrderResult(LimitOrderResultStatus.Rejected, "Insufficient funding", null);
 
         var book = getContext().ensureOrderBook(order.instrument());
         var result = book.orderBook().processOrder(order.limitOrder());
         if (result.status() == OrderBookLimitOrderResultStatus.Rejected) {
             refundFunding(order);
-            return new LimitOrderResult(LimitOrderResultStatus.Rejected, null);
+            return new LimitOrderResult(LimitOrderResultStatus.Rejected, result.rejectReason(),null);
         }
 
         if (result.status() == OrderBookLimitOrderResultStatus.Partial || result.status() == OrderBookLimitOrderResultStatus.Filled) {
             bookTrades(result, order.instrument());
         }
 
-        return new LimitOrderResult(LimitOrderResultStatus.Ok, result);
+        return new LimitOrderResult(LimitOrderResultStatus.Ok, null, result);
     }
 
     public boolean cancel(Account account, Instrument instrument, long orderId) {
         var cancelledOrder = getContext().ensureOrderBook(instrument).orderBook().cancelOrder(orderId);
 
         if (cancelledOrder != null) {
-            var fundingAsset = cancelledOrder.side() == OrderBookSide.Buy ? instrument.quoteAsset() : instrument.baseAsset();
-            var fundingSize = cancelledOrder.side() == OrderBookSide.Buy ? cancelledOrder.size() * cancelledOrder.price() : cancelledOrder.size();
-            adjustBalance(account, fundingAsset, fundingSize);
+            refundCancelledOrder(account, instrument, cancelledOrder);
             return true;
         } else {
             return false;
         }
+    }
+
+    private void refundCancelledOrder(Account account, Instrument instrument, OrderBookEntry cancelledOrder) {
+        var fundingAsset = cancelledOrder.side() == OrderBookSide.Buy ? instrument.quoteAsset() : instrument.baseAsset();
+        var fundingSize = cancelledOrder.side() == OrderBookSide.Buy ? cancelledOrder.size() * cancelledOrder.price() : cancelledOrder.size();
+        adjustBalance(account, fundingAsset, fundingSize);
     }
 
     private void bookTrades(OrderBookLimitOrderResult result, Instrument instrument) {
@@ -99,6 +103,10 @@ public class TradingEngine {
 
     public boolean cancelAll(Account account, Instrument instrument) {
         var book = getContext().ensureOrderBook(instrument);
-        return book.orderBook().cancelAll(account.accountId());
+        var cancelled = book.orderBook().cancelAll(account.accountId());
+        for (var order : cancelled) {
+            refundCancelledOrder(account, instrument, order);
+        }
+        return !cancelled.isEmpty();
     }
 }

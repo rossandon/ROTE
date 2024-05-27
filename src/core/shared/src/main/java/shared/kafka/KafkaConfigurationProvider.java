@@ -42,6 +42,14 @@ public class KafkaConfigurationProvider {
 
     public void setTargetHost(String targetHost) { this.targetHost = targetHost; }
 
+    public String getTargetHost() {
+        return targetHost;
+    }
+
+    public String getFromStart() {
+        return fromStart;
+    }
+
     public void setTls(String tls) { this.tls = tls; }
 
     public KafkaConfigurationProvider() {
