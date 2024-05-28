@@ -1,10 +1,20 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 
 namespace Algo;
 
 public class RoteClient(HttpClient client)
 {
+    public void SetUsername(string username)
+    {
+        var authenticationString = $"{username}:devpassword";
+        var base64EncodedAuthenticationString = Convert.ToBase64String(Encoding.UTF8.GetBytes(authenticationString));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64EncodedAuthenticationString);
+    }
+    
     public async Task<WhoAmIResponse> WhoAmI(CancellationToken cancellationToken)
     {
         var resp = await client.GetFromJsonAsync<WhoAmIResponse>("/system/whoami", cancellationToken);

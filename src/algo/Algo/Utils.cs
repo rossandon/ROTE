@@ -27,4 +27,9 @@ public static class Utils
 
         return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(message.ToArray()));
     }
+
+    public static decimal AddBips(this decimal val, int bips)
+    {
+        return val + val * (bips / 10_000m);
+    }
 }

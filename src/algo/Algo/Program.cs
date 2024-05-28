@@ -5,19 +5,22 @@ using Algo;
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService(sp => sp.GetRequiredService<BinanceQuoteProvider>());
 builder.Services.AddSingleton<BinanceQuoteProvider>();
-builder.Services.AddHostedService<Quoter>();
-builder.Services.AddHttpClient<RoteClient>(c =>
+builder.Services.AddTransient<Quoter>();
+builder.Services.AddHttpClient<RoteClient>(c => { c.BaseAddress = new Uri("http://localhost:8081"); });
+
+var quoterConfiguration = builder.Configuration.GetSection("Quoters").Get<QuoterConfiguration[]>();
+if (quoterConfiguration == null)
+    throw new Exception("Configuration not found");
+
+foreach (var entry in quoterConfiguration)
 {
-    c.BaseAddress = new Uri("http://localhost:8081");
-    var authenticationString = $"ryan:devpassword";
-    var base64EncodedAuthenticationString = Convert.ToBase64String(Encoding.UTF8.GetBytes(authenticationString));
-    c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64EncodedAuthenticationString);
-});
+    builder.Services.AddSingleton(IHostedService (sp) =>
+    {
+        var quoter = sp.GetRequiredService<Quoter>();
+        quoter.Configuration = entry;
+        return quoter;
+    });
+}
 
 var host = builder.Build();
-var log = host.Services.GetRequiredService<ILogger<Program>>();
-
-var roteClient = host.Services.GetRequiredService<RoteClient>();
-var whoAmIResponse = await roteClient.WhoAmI(CancellationToken.None);
-log.LogInformation($"Running as {whoAmIResponse.Name}");
 await host.RunAsync();

@@ -33,9 +33,9 @@
         </tr>
     </thead>
     <tbody>
-        <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={bookResponse.asks}></OrderBookEntryList>
+        <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={bookResponse.asks.reverse()}></OrderBookEntryList>
         <tr><td colspan="3">Mid</td></tr>
-        <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={bookResponse.bids}></OrderBookEntryList>
+        <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={bookResponse.bids.reverse()}></OrderBookEntryList>
     </tbody>
 </table>
 {/if}
