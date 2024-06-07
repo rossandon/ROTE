@@ -15,7 +15,13 @@
     }
 
     onMount(() => {
-        refresh()
+        let socket = new WebSocket("ws://localhost:8081/market-data?instrumentCode=" + instrumentCode)
+        socket.onmessage = () => {
+            console.log("ok")
+        }
+        socket.addEventListener("open", ()=> {
+            console.log("Opened")
+        })
     })
 </script>
 
