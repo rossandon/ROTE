@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import shared.utils.RunnableExecutor;
 
-@Component
+//@Component
 public class MarketDataConsumerExecutor extends RunnableExecutor {
     @Autowired
     private MarketDataConsumer marketDataConsumer;

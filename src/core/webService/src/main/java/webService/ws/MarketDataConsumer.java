@@ -9,9 +9,11 @@ import org.springframework.web.socket.*;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.util.UriComponentsBuilder;
 import shared.kafka.RoteKafkaConsumer;
+import shared.orderBook.OrderBookEntry;
 import shared.service.results.OrderBookSnapshot;
 
 import java.io.IOException;
@@ -22,9 +24,8 @@ import java.util.List;
 
 import static shared.service.TradingEngineServiceConsts.MarketDataTopic;
 
-@Configuration
-@EnableWebSocket
-public class MarketDataConsumer implements Runnable, WebSocketConfigurer, WebSocketHandler {
+@Component
+public class MarketDataConsumer extends AbstractWebSocketHandler implements Runnable {
     private static final Logger log = Logger.getLogger(MarketDataConsumer.class);
 
     private final RoteKafkaConsumer roteKafkaConsumer;
@@ -57,11 +58,6 @@ public class MarketDataConsumer implements Runnable, WebSocketConfigurer, WebSoc
     }
 
     @Override
-    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(this, "/market-data").setAllowedOrigins("*").withSockJS();
-    }
-
-    @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         var instrumentCode = getSubscribedInstrumentCode(session);
         synchronized (webSocketConnections) {
@@ -73,13 +69,16 @@ public class MarketDataConsumer implements Runnable, WebSocketConfigurer, WebSoc
         synchronized (snapshots) {
             latestBookSnapshot = snapshots.get(instrumentCode);
         }
-        if (latestBookSnapshot != null) {
-            sendBookSnapshot(session, latestBookSnapshot);
+
+        if (latestBookSnapshot == null) {
+            latestBookSnapshot = new OrderBookSnapshot(instrumentCode, new ArrayList<>(), new ArrayList<>());
         }
+        sendBookSnapshot(session, latestBookSnapshot);
     }
 
     private String getSubscribedInstrumentCode(WebSocketSession session) {
-        var components = UriComponentsBuilder.fromHttpUrl(session.getUri().toString()).build();
+
+        var components = UriComponentsBuilder.fromUri(session.getUri()).build();
         var instrumentCode = components.getQueryParams().get("instrumentCode");
         return instrumentCode.get(0);
     }
@@ -94,25 +93,5 @@ public class MarketDataConsumer implements Runnable, WebSocketConfigurer, WebSoc
         } catch (IOException e) {
             log.error("failed to send book snapshot", e);
         }
-    }
-
-    @Override
-    public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
-        log.info("yo");
-    }
-
-    @Override
-    public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        log.error("websocket error", exception);
-    }
-
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
-        log.info("connection closed");
-    }
-
-    @Override
-    public boolean supportsPartialMessages() {
-        return false;
     }
 }
