@@ -76,6 +76,15 @@ public class MarketDataConsumer extends AbstractWebSocketHandler implements Runn
         sendBookSnapshot(session, latestBookSnapshot);
     }
 
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        var instrumentCode = getSubscribedInstrumentCode(session);
+        synchronized (webSocketConnections) {
+            var entries = webSocketConnections.computeIfAbsent(instrumentCode, a -> new ArrayList<>());
+            entries.remove(session);
+        }
+    }
+
     private String getSubscribedInstrumentCode(WebSocketSession session) {
         var components = UriComponentsBuilder.fromUri(session.getUri()).build();
         var instrumentCode = components.getQueryParams().get("instrumentCode");
