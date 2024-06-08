@@ -1,5 +1,8 @@
+#!/bin/bash
 cd src/core
-./gradlew classes
+if ! ./gradlew classes; then
+  exit
+fi
 export SPRING_PROFILES_ACTIVE='dev'
 
 function parallel_commands() {

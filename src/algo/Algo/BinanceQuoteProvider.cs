@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace Algo;
 
-public class BinanceQuoteProvider(ILogger<BinanceQuoteProvider> logger) : BackgroundService
+public class BinanceQuoteProvider(QuoterConfiguration[] quoterConfigurations, ILogger<BinanceQuoteProvider> logger) : BackgroundService
 {
     private BinanceQuote? _latestQuote;
 
@@ -15,12 +15,23 @@ public class BinanceQuoteProvider(ILogger<BinanceQuoteProvider> logger) : Backgr
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var threads = quoterConfigurations
+            .Select(c => c.BinanceInstrument)
+            .Distinct()
+            .Select(i => ReadBook(i, stoppingToken))
+            .ToArray();
+
+        await Task.WhenAll(threads);
+    }
+
+    private async Task ReadBook(string instrumentCode, CancellationToken stoppingToken)
+    {
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 using var webSocket = new ClientWebSocket();
-                await webSocket.ConnectAsync(new Uri("wss://fstream.binance.com/ws/btcusdt@bookTicker"), stoppingToken);
+                await webSocket.ConnectAsync(new Uri($"wss://fstream.binance.com/ws/{instrumentCode}@bookTicker"), stoppingToken);
                 while (true)
                 {
                     var message = await webSocket.ReceiveAsync<BinanceQuote>(stoppingToken);

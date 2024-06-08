@@ -15,7 +15,10 @@
     }
 
     onMount(() => {
-        refresh()
+        let socket = new WebSocket("ws://localhost:8081/market/data?instrumentCode=" + instrumentCode, "protocolOne")
+        socket.onmessage = m => {
+            bookResponse = JSON.parse(m.data)
+        }
     })
 </script>
 

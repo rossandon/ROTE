@@ -68,7 +68,7 @@ public class KafkaConfigurationProvider {
         props.put("value.deserializer", "org.springframework.kafka.support.serializer.JsonDeserializer");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, getGroupId());
         props.put("auto.offset.reset", Boolean.parseBoolean(fromStart) ? "earliest" : "latest");
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "shared.service");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "shared.service,shared.service.results");
         return props;
     }
 

@@ -14,7 +14,6 @@ public class Quoter(BinanceQuoteProvider binanceQuoteProvider, RoteClient roteCl
         var whoAmIResponse = await roteClient.WhoAmI(stoppingToken);
         logger.LogInformation($"Starting quoter '{Configuration.Username}' (user id = {whoAmIResponse.AccountId})");
 
-
         await EnsureBalance(stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -64,4 +63,5 @@ public class QuoterConfiguration
     public TimeSpan Interval { get; set; } = TimeSpan.FromMilliseconds(200);
     public string Username { get; set; }
     public string Symbol { get; set; } = "BTC/USD";
+    public string BinanceInstrument { get; set; } = "btcusdt";
 }
