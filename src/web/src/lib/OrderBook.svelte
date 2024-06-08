@@ -1,28 +1,25 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import {OrderBookResponse} from "./Models";
+    import {OrderBookEntry, OrderBookResponse} from "./Models";
     import OrderBookEntryList from "./OrderBookEntryList.svelte";
 
     let bookResponse: OrderBookResponse
-    export let instrumentCode: string;
+    let bids: OrderBookEntry[]
+    let asks: OrderBookEntry[]
 
-    export function refresh() {
-        fetch(`book?instrumentCode=${instrumentCode}`)
-            .then(response => response.json() as Promise<OrderBookResponse>)
-            .then(result => {
-                bookResponse = result;
-            })
-    }
+    export let instrumentCode: string;
 
     onMount(() => {
         let socket = new WebSocket("ws://localhost:8081/market/data?instrumentCode=" + instrumentCode, "protocolOne")
         socket.onmessage = m => {
-            bookResponse = JSON.parse(m.data)
+            var bookResponse = JSON.parse(m.data)
+            bids = bookResponse.bids.reverse();
+            asks = bookResponse.asks.reverse();
         }
     })
 </script>
 
-{#if bookResponse != null}
+{#if bids != null && asks != null}
 <table>
     <thead>
         <tr>
@@ -36,9 +33,9 @@
         </tr>
     </thead>
     <tbody>
-        <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={bookResponse.asks.reverse()}></OrderBookEntryList>
+        <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={asks}></OrderBookEntryList>
         <tr><td colspan="3">Mid</td></tr>
-        <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={bookResponse.bids.reverse()}></OrderBookEntryList>
+        <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={bids}></OrderBookEntryList>
     </tbody>
 </table>
 {/if}

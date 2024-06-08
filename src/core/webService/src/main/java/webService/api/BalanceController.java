@@ -9,6 +9,7 @@ import shared.service.TradingEngineKafkaRequestResponseClient;
 import shared.service.TradingEngineServiceRequest;
 import webService.security.RoteUserContext;
 
+import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.concurrent.Future;
@@ -20,7 +21,7 @@ public class BalanceController {
     TradingEngineKafkaRequestResponseClient client;
 
     @GetMapping("balances/list")
-    Future<HashMap<String, Long>> list(RoteUserContext roteUserContext) throws Exception {
+    Future<HashMap<String, BigDecimal>> list(RoteUserContext roteUserContext) throws Exception {
         var future = client.sendAsync(TradingEngineServiceRequest.getBalances(roteUserContext.getAccountId()));
         return future.thenApply(resp -> {
             try {
@@ -33,7 +34,7 @@ public class BalanceController {
     }
 
     @PostMapping("balances/deposit")
-    void deposit(RoteUserContext roteUserContext, @RequestParam("assetCode") String assetCode, @RequestParam("amount") Long amount) throws Exception {
+    void deposit(RoteUserContext roteUserContext, @RequestParam("assetCode") String assetCode, @RequestParam("amount") BigDecimal amount) throws Exception {
         var resp = client.send(TradingEngineServiceRequest.adjustBalance(amount, roteUserContext.getAccountId(), assetCode));
         resp.assertOk();
     }

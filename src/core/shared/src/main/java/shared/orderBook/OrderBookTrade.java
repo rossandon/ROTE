@@ -1,4 +1,6 @@
 package shared.orderBook;
 
-public record OrderBookTrade(long size, long price, OrderBookSide takerSide, long makerAccountId, long takerAccountId) {
+import java.math.BigDecimal;
+
+public record OrderBookTrade(BigDecimal size, BigDecimal price, OrderBookSide takerSide, long makerAccountId, long takerAccountId) {
 }

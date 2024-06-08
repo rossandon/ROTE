@@ -4,12 +4,18 @@ import shared.orderBook.OrderBookEntry;
 import shared.orderBook.OrderBookSide;
 import shared.orderBook.OrderBookTrade;
 
-public record OrderBookLimitOrder(long size, long price, OrderBookSide side, long accountId) {
+import java.math.BigDecimal;
+
+public record OrderBookLimitOrder(BigDecimal size, BigDecimal price, OrderBookSide side, long accountId) {
+    public OrderBookLimitOrder(long size, long price, OrderBookSide side, long accountId) {
+        this(BigDecimal.valueOf(size), BigDecimal.valueOf(price), side, accountId);
+    }
+
     public OrderBookTrade fill(OrderBookEntry entry) {
-        return new OrderBookTrade(Math.min(size, entry.size()), entry.price(), side, entry.accountId(), accountId);
+        return new OrderBookTrade(size.min(entry.size()), entry.price(), side, entry.accountId(), accountId);
     }
 
     public boolean canFill(OrderBookEntry entry) {
-        return side == OrderBookSide.Buy ? price >= entry.price() : price <= entry.price();
+        return side == OrderBookSide.Buy ? price.compareTo(entry.price()) >= 0 : price.compareTo(entry.price()) <= 0;
     }
 }

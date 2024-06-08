@@ -35,7 +35,7 @@
         </td>
     </tr>
 {:else}
-{#each bookEntryList as entry}
+{#each bookEntryList as entry, i (bookEntryList.indexOf(entry))}
     <tr>
         <td>
             {entry.price}

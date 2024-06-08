@@ -20,6 +20,7 @@ import tradingEngineService.tradingEngine.TradingEngine;
 import tradingEngineService.tradingEngine.TradingEngineContextInstance;
 
 import java.io.Closeable;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -150,7 +151,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
 
     private TradingEngineServiceResponse handleGetBalancesRequest(TradingEngineServiceRequest request) {
         var allAssets = referentialInventory.getAllAssets();
-        var map = new HashMap<String, Long>();
+        var map = new HashMap<String, BigDecimal>();
         for (var asset : allAssets) {
             var balance = tradingEngine.getBalance(request.accountId(), asset);
             map.put(asset.code(), balance);

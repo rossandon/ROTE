@@ -11,6 +11,7 @@ import shared.service.TradingEngineKafkaRequestResponseClient;
 import shared.service.TradingEngineServiceRequest;
 import webService.security.RoteUserContext;
 
+import java.math.BigDecimal;
 import java.security.Principal;
 
 @RestController
@@ -21,7 +22,7 @@ public class OrderController {
 
     @PostMapping("orders/submit")
     void placeOrder(RoteUserContext roteUserContext, @RequestParam("instrumentCode") String instrumentCode,
-                    @RequestParam("amount") Long amount, @RequestParam("price") Long price,
+                    @RequestParam("amount") BigDecimal amount, @RequestParam("price") BigDecimal price,
                     @RequestParam("side") OrderBookSide side) throws Exception {
         var resp = client.send(TradingEngineServiceRequest.limitOrder(amount, price, roteUserContext.getAccountId(), instrumentCode, side));
         resp.assertOk();

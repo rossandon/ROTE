@@ -43,10 +43,10 @@ public class Quoter(BinanceQuoteProvider binanceQuoteProvider, RoteClient roteCl
         logger.LogInformation($"Repricing {Configuration.Username}");
         await roteClient.CancelAll(Configuration.Symbol, cancellationToken);
         
-        await roteClient.PlaceOrder(Configuration.Symbol, (long)currentQuote.BidPrice.AddBips(-Configuration.Spread),
+        await roteClient.PlaceOrder(Configuration.Symbol, decimal.Round(currentQuote.BidPrice.AddBips(-Configuration.Spread), 2),
             (long)Configuration.Qty, TradeSide.Buy, cancellationToken);
         
-        await roteClient.PlaceOrder(Configuration.Symbol, (long)currentQuote.AskPrice.AddBips(Configuration.Spread),
+        await roteClient.PlaceOrder(Configuration.Symbol, decimal.Round(currentQuote.AskPrice.AddBips(Configuration.Spread), 2),
             (long)Configuration.Qty, TradeSide.Sell, cancellationToken);
     }
 

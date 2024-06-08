@@ -1,7 +1,9 @@
 package shared.orderBook;
 
-public record OrderBookEntry(long size, long price, long accountId, long id, OrderBookSide side) {
-    public OrderBookEntry withSize(long size) {
+import java.math.BigDecimal;
+
+public record OrderBookEntry(BigDecimal size, BigDecimal price, long accountId, long id, OrderBookSide side) {
+    public OrderBookEntry withSize(BigDecimal size) {
         return new OrderBookEntry(size, price, accountId, id, side);
     }
 }

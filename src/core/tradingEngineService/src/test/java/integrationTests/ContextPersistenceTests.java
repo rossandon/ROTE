@@ -9,6 +9,7 @@ import shared.service.TradingEngineServiceRequest;
 import tradingEngineService.service.TradingEngineStreamingService;
 import tradingEngineService.tradingEngine.TradingEngineContextInstance;
 
+import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,7 +27,7 @@ public class ContextPersistenceTests extends IntegrationTest {
     @Test
     public void Test1() throws Exception {
         var instance1 = instance.getContext();
-        send(TradingEngineServiceRequest.adjustBalance(20, 1, "USD"));
+        send(TradingEngineServiceRequest.adjustBalance(BigDecimal.valueOf(20), 1, "USD"));
 
         var future = tradingEngineStreamingService.snapshot();
         var result = future.get(30, TimeUnit.SECONDS);
@@ -37,6 +38,6 @@ public class ContextPersistenceTests extends IntegrationTest {
         assertTrue(instance1 != instance2);
 
         var response = send(TradingEngineServiceRequest.getBalance(1, "USD"));
-        assertEquals(20, response.getBalanceResult().balance());
+        assertEquals(20, response.getBalanceResult().balance().longValue());
     }
 }

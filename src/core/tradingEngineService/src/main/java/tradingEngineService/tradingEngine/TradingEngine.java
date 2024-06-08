@@ -7,6 +7,8 @@ import tradingEngineService.referential.Instrument;
 import shared.orderBook.*;
 import shared.service.results.LimitOrderResult;
 
+import java.math.BigDecimal;
+
 @Component
 public class TradingEngine {
     private final TradingEngineContextInstance tradingEngineContextInstance;
@@ -20,11 +22,11 @@ public class TradingEngine {
         this.tradingEngineContextInstance = tradingEngineContextInstance;
     }
 
-    public void adjustBalance(Account account, Asset asset, long balance) {
+    public void adjustBalance(Account account, Asset asset, BigDecimal balance) {
         getContext().adjustBalance(account, asset, balance);
     }
 
-    public long getBalance(long accountId, Asset asset) {
+    public BigDecimal getBalance(long accountId, Asset asset) {
         return getContext().getBalance(accountId, asset);
     }
 
@@ -60,7 +62,7 @@ public class TradingEngine {
 
     private void refundCancelledOrder(Account account, Instrument instrument, OrderBookEntry cancelledOrder) {
         var fundingAsset = cancelledOrder.side() == OrderBookSide.Buy ? instrument.quoteAsset() : instrument.baseAsset();
-        var fundingSize = cancelledOrder.side() == OrderBookSide.Buy ? cancelledOrder.size() * cancelledOrder.price() : cancelledOrder.size();
+        var fundingSize = cancelledOrder.side() == OrderBookSide.Buy ? cancelledOrder.price().multiply(cancelledOrder.size()) : cancelledOrder.size();
         adjustBalance(account, fundingAsset, fundingSize);
     }
 
@@ -73,9 +75,9 @@ public class TradingEngine {
     private void bookTrade(OrderBookTrade trade, Instrument instrument) {
         if (trade.takerSide() == OrderBookSide.Buy) {
             getContext().adjustBalance(trade.takerAccountId(), instrument.baseAsset(), trade.size());
-            getContext().adjustBalance(trade.makerAccountId(), instrument.quoteAsset(), trade.size() * trade.price());
+            getContext().adjustBalance(trade.makerAccountId(), instrument.quoteAsset(), trade.size().multiply(trade.price()));
         } else {
-            getContext().adjustBalance(trade.takerAccountId(), instrument.quoteAsset(), trade.size() * trade.price());
+            getContext().adjustBalance(trade.takerAccountId(), instrument.quoteAsset(), trade.size().multiply(trade.price()));
             getContext().adjustBalance(trade.makerAccountId(), instrument.baseAsset(), trade.size());
         }
 
@@ -90,8 +92,8 @@ public class TradingEngine {
         var fundingAsset = order.fundingAsset();
         var funds = getContext().getBalance(order.account(), fundingAsset);
         var requiredFunds = order.getRequiredFunds();
-        if (funds >= requiredFunds) {
-            getContext().adjustBalance(order.account(), fundingAsset, requiredFunds * -1);
+        if (funds.compareTo(requiredFunds) >= 0) {
+            getContext().adjustBalance(order.account(), fundingAsset, requiredFunds.multiply(BigDecimal.valueOf(-1)));
             return true;
         }
         return false;

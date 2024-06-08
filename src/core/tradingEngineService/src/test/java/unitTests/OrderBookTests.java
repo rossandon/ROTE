@@ -16,12 +16,13 @@ public class OrderBookTests {
         book.processOrder(new OrderBookLimitOrder(100, 99, OrderBookSide.Buy, 1));
 
         assertEquals(2, book.bids.size());
-        assertEquals(100, book.bids.get(0).price());
-        assertEquals(99, book.bids.get(1).price());
+        assertEquals(100, book.bids.get(0).price().longValue());
+        assertEquals(99, book.bids.get(1).price().longValue());
 
         var res1 = book.processOrder(new OrderBookLimitOrder(49, 100, OrderBookSide.Sell, 2));
         var res2 = book.processOrder(new OrderBookLimitOrder(10, 101, OrderBookSide.Sell, 2));
 
+        assertEquals(OrderBookLimitOrderResultStatus.Filled, res1.status());
         assertEquals(1, res1.trades().size());
         assertEquals(2, res1.trades().get(0).takerAccountId());
         assertEquals(1, res1.trades().get(0).makerAccountId());
@@ -32,8 +33,8 @@ public class OrderBookTests {
         assertNull(res2.trades());
 
         assertEquals(2, book.bids.size());
-        assertEquals(100, book.bids.get(0).price());
-        assertEquals(51, book.bids.get(0).size());
+        assertEquals(100, book.bids.get(0).price().longValue());
+        assertEquals(51, book.bids.get(0).size().longValue());
 
         assertEquals(1, book.asks.size());
     }
@@ -47,9 +48,9 @@ public class OrderBookTests {
         assertEquals(3, book.asks.size());
         var res1 = book.processOrder(new OrderBookLimitOrder(40, 103, OrderBookSide.Buy, 1));
         assertEquals(3, res1.trades().size());
-        assertEquals(100, res1.trades().get(0).price());
-        assertEquals(101, res1.trades().get(1).price());
-        assertEquals(102, res1.trades().get(2).price());
+        assertEquals(100, res1.trades().get(0).price().longValue());
+        assertEquals(101, res1.trades().get(1).price().longValue());
+        assertEquals(102, res1.trades().get(2).price().longValue());
         assertEquals(0, book.asks.size());
     }
 

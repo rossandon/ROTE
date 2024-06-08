@@ -41,7 +41,7 @@ public class RoteClient(HttpClient client)
     }
 
 
-    public async Task PlaceOrder(string instrumentCode, long price, long size, TradeSide side,
+    public async Task PlaceOrder(string instrumentCode, decimal price, decimal size, TradeSide side,
         CancellationToken cancellationToken)
     {
         var resp = await client.PostAsync("/orders/submit",

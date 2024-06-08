@@ -1,4 +1,6 @@
 package shared.service.results;
 
-public record GetBalanceResult(long balance) {
+import java.math.BigDecimal;
+
+public record GetBalanceResult(BigDecimal balance) {
 }

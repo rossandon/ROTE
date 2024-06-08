@@ -4,11 +4,12 @@ import tradingEngineService.orderBook.OrderBook;
 import tradingEngineService.referential.Asset;
 import tradingEngineService.referential.Instrument;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
 public class TradingEngineContext {
-    public final HashMap<Long, HashMap<Integer, Long>> balances;
+    public final HashMap<Long, HashMap<Integer, BigDecimal>> balances;
     public final HashMap<Integer, InstrumentOrderBook> orderBooks;
     public long sequence;
 
@@ -27,30 +28,30 @@ public class TradingEngineContext {
         return newBook;
     }
 
-    public long getBalance(Account account, Asset asset) {
+    public BigDecimal getBalance(Account account, Asset asset) {
         return getBalance(account.accountId(), asset);
     }
 
-    public long getBalance(long accountId, Asset asset) {
+    public BigDecimal getBalance(long accountId, Asset asset) {
         if (balances.containsKey(accountId)) {
             var balancesByAsset = balances.get(accountId);
             if (balancesByAsset.containsKey(asset.id())) {
                 return balancesByAsset.get(asset.id());
             }
         }
-        return 0L;
+        return BigDecimal.valueOf(0L);
     }
 
-    public void adjustBalance(Account account, Asset asset, long adjustment) {
+    public void adjustBalance(Account account, Asset asset, BigDecimal adjustment) {
         adjustBalance(account.accountId(), asset, adjustment);
     }
 
-    public void adjustBalance(long accountId, Asset asset, long adjustment) {
+    public void adjustBalance(long accountId, Asset asset, BigDecimal adjustment) {
         if (balances.containsKey(accountId)) {
             var balancesByAsset = balances.get(accountId);
             if (balancesByAsset.containsKey(asset.id())) {
                 var balance = balancesByAsset.get(asset.id());
-                balancesByAsset.put(asset.id(), balance + adjustment);
+                balancesByAsset.put(asset.id(), balance.add(adjustment));
             } else {
                 balancesByAsset.put(asset.id(), adjustment);
             }

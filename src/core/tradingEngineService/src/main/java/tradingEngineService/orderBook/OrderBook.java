@@ -2,6 +2,7 @@ package tradingEngineService.orderBook;
 
 import shared.orderBook.*;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 
 public class OrderBook {
@@ -63,8 +64,8 @@ public class OrderBook {
         for (int i = 0; i < orderBookEntries.size(); i++) {
             var entry = orderBookEntries.get(i);
             var isImprovement = order.side() == OrderBookSide.Buy
-                    ? order.price() > entry.price()
-                    : order.price() < entry.price();
+                    ? order.price().compareTo(entry.price()) > 0
+                    : order.price().compareTo(entry.price()) < 0;
 
             if (isImprovement) {
                 orderBookEntries.add(i, newEntry);
@@ -77,22 +78,22 @@ public class OrderBook {
     }
 
     private OrderBookExecutionResult executeLimitOrder(OrderBookLimitOrder order, ArrayList<OrderBookEntry> allEntries, ArrayList<OrderBookEntry> executableEntries) {
-        var totalSize = 0L;
+        var totalSize = BigDecimal.ZERO;
         var trades = new ArrayList<OrderBookTrade>();
 
         for (var i = 0; i < executableEntries.size(); i++) {
             var entry = allEntries.get(i);
             var trade = order.fill(entry);
-            var remainingOnOrder = entry.size() - trade.size();
+            var remainingOnOrder = entry.size().subtract(trade.size());
             allEntries.set(i, entry.withSize(remainingOnOrder));
             trades.add(trade);
-            totalSize += trade.size();
-            if (totalSize == order.size())
+            totalSize =  totalSize.add(trade.size());
+            if (totalSize.compareTo(order.size()) == 0)
                 break;
         }
 
         while (!allEntries.isEmpty()) {
-            if (allEntries.get(0).size() == 0)
+            if (allEntries.get(0).size().compareTo(BigDecimal.ZERO) == 0)
                 allEntries.remove(0);
             else
                 break;
@@ -108,8 +109,8 @@ public class OrderBook {
             if (!order.canFill(entry))
                 break;
             executableEntries.add(entry);
-            remaining -= entry.size();
-            if (remaining <= 0)
+            remaining = remaining.subtract(entry.size());
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0)
                 break;
         }
         return executableEntries;
@@ -124,13 +125,11 @@ public class OrderBook {
 
     private ArrayList<OrderBookEntry> cancelAll(long accountId, ArrayList<OrderBookEntry> entries) {
         var cancelled = new ArrayList<OrderBookEntry>();
-        var any = false;
         for (var i = entries.size() - 1; i >= 0; i--) {
             var entry = entries.get(i);
             if (entry.accountId() == accountId) {
                 cancelled.add(entry);
                 entries.remove(i);
-                any = true;
             }
         }
         return cancelled;

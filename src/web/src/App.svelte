@@ -8,7 +8,6 @@
 
   let user: WhoAmIResponse | null;
   let refreshBalances: () => void;
-  let refreshBook: () => void;
 
   function handleDeposit() {
     refreshBalances()
@@ -16,7 +15,6 @@
 
   function handleOrder() {
     refreshBalances()
-    refreshBook()
   }
 </script>
 
@@ -27,7 +25,7 @@
     {#if user != null}
       <div class="row">
         <div>
-          <OrderBook on:order-canceled={handleOrder} bind:refresh={refreshBook} instrumentCode="BTC/USD"></OrderBook>
+          <OrderBook on:order-canceled={handleOrder} instrumentCode="BTC/USD"></OrderBook>
         </div>
         <div>
           <PlaceOrder on:submit-order={handleOrder}></PlaceOrder>
