@@ -95,4 +95,20 @@ public class OrderBookTests {
         assertEquals(1, book.bids.size());
         assertEquals(2, book.bids.get(0).accountId());
     }
+
+    @Test
+    public void improvementTest() {
+        var book = new OrderBook();
+        book.processOrder(new OrderBookLimitOrder(10, 100, OrderBookSide.Buy, 1));
+        book.processOrder(new OrderBookLimitOrder(10, 99, OrderBookSide.Buy, 2));
+        book.processOrder(new OrderBookLimitOrder(10, 101, OrderBookSide.Sell, 1));
+        book.processOrder(new OrderBookLimitOrder(10, 102, OrderBookSide.Sell, 2));
+
+        assertEquals(2, book.bids.size());
+        assertEquals(100, book.bids.get(0).price().longValue());
+        assertEquals(99, book.bids.get(1).price().longValue());
+        assertEquals(2, book.asks.size());
+        assertEquals(101, book.asks.get(0).price().longValue());
+        assertEquals(102, book.asks.get(1).price().longValue());
+    }
 }

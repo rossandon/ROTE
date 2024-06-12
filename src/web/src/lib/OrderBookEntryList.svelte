@@ -4,7 +4,7 @@
 
     const dispatch = createEventDispatcher();
 
-    export let bookEntryList: OrderBookEntry[]
+    export let bookEntryList: (OrderBookEntry | null)[]
     export let instrumentCode: string
 
     const handleCancel = e => {
@@ -35,7 +35,12 @@
         </td>
     </tr>
 {:else}
-{#each bookEntryList as entry, i (bookEntryList.indexOf(entry))}
+{#each bookEntryList as entry}
+    {#if entry == null}
+    <tr>
+        <td colspan="3">-</td>
+    </tr>
+    {:else}
     <tr>
         <td>
             {entry.price}
@@ -53,5 +58,7 @@
             {/if}
         </td>
     </tr>
+    {/if}
+
 {/each}
 {/if}
