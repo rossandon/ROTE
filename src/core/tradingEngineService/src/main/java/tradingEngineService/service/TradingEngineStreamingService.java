@@ -23,6 +23,8 @@ import tradingEngineService.tradingEngine.TradingEngineContextInstance;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -186,7 +188,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         if (result.trades() == null)
             return;
         for (var trade : result.trades()) {
-            var marketDataTrade = new Trade(instrument.code(), trade.id(), trade.size(), trade.price(), trade.takerSide());
+            var marketDataTrade = new Trade(instrument.code(), LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), trade.id(), trade.size(), trade.price(), trade.takerSide());
             tradeProducer.produce(TradingEngineServiceConsts.TradeDataTopic, instrument.code(), marketDataTrade, null, true);
         }
     }

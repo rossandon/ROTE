@@ -15,4 +15,5 @@ export class Trade {
     size!: number;
     price!: number;
     id!:string;
+    timestamp!:string;
 }

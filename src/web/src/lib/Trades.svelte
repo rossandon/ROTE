@@ -4,7 +4,7 @@
 
     let trades: Trade[] = []
 
-    export let len = 5;
+    export let len = 11;
     export let instrumentCode: string;
 
     onMount(() => {
@@ -17,6 +17,9 @@
             console.log(m.data)
             var trade = JSON.parse(m.data);
             trades = trades.concat(trade);
+            if (trades.length > len) {
+                trades = trades.slice(1)
+            }
         };
     });
 </script>
@@ -26,6 +29,7 @@
         <tr>
             <th> Price </th>
             <th> Size </th>
+            <th> Time </th>
         </tr>
     </thead>
     <tbody>
@@ -36,6 +40,9 @@
                 </td>
                 <td>
                     {entry.size}
+                </td>
+                <td>
+                    {entry.timestamp}
                 </td>
             </tr>
         {/each}

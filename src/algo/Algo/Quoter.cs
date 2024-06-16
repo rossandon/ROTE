@@ -1,13 +1,12 @@
 namespace Algo;
 
-public class Quoter(BinanceQuoteProvider binanceQuoteProvider, RoteClient roteClient, ILogger<Quoter> logger)
-    : BackgroundService
+public class Quoter(QuoteStore quoteStore, RoteClient roteClient, ILogger<Quoter> logger)
 {
     private const int MinBalance = 1_000_000;
-    private BinanceQuote? _previousQuote;
+    private Quote? _previousQuote;
     public QuoterConfiguration Configuration { get; set; }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async Task Run(CancellationToken stoppingToken)
     {
         roteClient.SetUsername(Configuration.Username);
 
@@ -18,9 +17,12 @@ public class Quoter(BinanceQuoteProvider binanceQuoteProvider, RoteClient roteCl
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var currentQuote = binanceQuoteProvider.GetLatest();
+            var currentQuote = quoteStore.GetOrNull(Configuration.ExchangeInstrument, Configuration.Exchange);
             if (currentQuote == null)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
                 continue;
+            }
             if (_previousQuote is null || IsQuoteDifferent(_previousQuote, currentQuote))
                 await Reprice(currentQuote, stoppingToken);
             _previousQuote = currentQuote;
@@ -38,7 +40,7 @@ public class Quoter(BinanceQuoteProvider binanceQuoteProvider, RoteClient roteCl
         }
     }
 
-    private async Task Reprice(BinanceQuote currentQuote, CancellationToken cancellationToken)
+    private async Task Reprice(Quote currentQuote, CancellationToken cancellationToken)
     {
         logger.LogInformation($"Repricing {Configuration.Username}");
         await roteClient.CancelAll(Configuration.Symbol, cancellationToken);
@@ -50,7 +52,7 @@ public class Quoter(BinanceQuoteProvider binanceQuoteProvider, RoteClient roteCl
             (long)Configuration.Qty, TradeSide.Sell, cancellationToken);
     }
 
-    private static bool IsQuoteDifferent(BinanceQuote previousQuote, BinanceQuote currentQuote)
+    private static bool IsQuoteDifferent(Quote previousQuote, Quote currentQuote)
     {
         return previousQuote.BidPrice != currentQuote.BidPrice || previousQuote.AskPrice != currentQuote.AskPrice;
     }
@@ -63,5 +65,12 @@ public class QuoterConfiguration
     public TimeSpan Interval { get; set; } = TimeSpan.FromMilliseconds(200);
     public string Username { get; set; }
     public string Symbol { get; set; } = "BTC/USD";
-    public string BinanceInstrument { get; set; } = "btcusdt";
+    public string ExchangeInstrument { get; set; } = "btcusdt";
+    public Exchange Exchange { get; set; } = Exchange.Binance;
+}
+
+public enum Exchange
+{
+    Binance,
+    Coinbase
 }

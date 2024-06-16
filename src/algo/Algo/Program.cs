@@ -1,31 +1,15 @@
 using Algo;
 
 var builder = Host.CreateApplicationBuilder(args);
-var quoterConfiguration = builder.Configuration.GetSection("Quoters").Get<QuoterConfiguration[]>();
-if (quoterConfiguration == null)
-{
-    Console.WriteLine("Configuration not found");
-    return;
-}
 
-builder.Services.AddHostedService(sp => sp.GetRequiredService<BinanceQuoteProvider>());
-builder.Services.AddSingleton<BinanceQuoteProvider>();
 builder.Services.AddTransient<Quoter>();
-builder.Services.AddSingleton(quoterConfiguration);
+builder.Services.AddSingleton<QuoteStore>();
+builder.Services.Configure<List<QuoterConfiguration>>(builder.Configuration.GetSection("Quoters"));
 builder.Services.AddHttpClient<RoteClient>(c => { c.BaseAddress = new Uri("http://localhost:8081"); });
 
-if (quoterConfiguration == null)
-    throw new Exception("Configuration not found");
-
-foreach (var entry in quoterConfiguration)
-{
-    builder.Services.AddSingleton(IHostedService (sp) =>
-    {
-        var quoter = sp.GetRequiredService<Quoter>();
-        quoter.Configuration = entry;
-        return quoter;
-    });
-}
+builder.Services.AddHostedService<BinanceQuoteProvider>();
+builder.Services.AddHostedService<CoinbaseQuoteProvider>();
+builder.Services.AddHostedService<QuoterService>();
 
 var host = builder.Build();
 await host.RunAsync();

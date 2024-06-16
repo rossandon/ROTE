@@ -1,22 +1,16 @@
 using System.Net.WebSockets;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace Algo;
 
-public class BinanceQuoteProvider(QuoterConfiguration[] quoterConfigurations, ILogger<BinanceQuoteProvider> logger) : BackgroundService
+public class BinanceQuoteProvider(IOptions<List<QuoterConfiguration>> quoterConfigurations, QuoteStore store, ILogger<BinanceQuoteProvider> logger) : BackgroundService
 {
-    private BinanceQuote? _latestQuote;
-
-    public BinanceQuote? GetLatest()
-    {
-        lock (this)
-            return _latestQuote;
-    }
-    
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var threads = quoterConfigurations
-            .Select(c => c.BinanceInstrument)
+        var threads = quoterConfigurations.Value
+            .Where(c => c.Exchange == Exchange.Binance)
+            .Select(c => c.ExchangeInstrument)
             .Distinct()
             .Select(i => ReadBook(i, stoppingToken))
             .ToArray();
@@ -37,8 +31,7 @@ public class BinanceQuoteProvider(QuoterConfiguration[] quoterConfigurations, IL
                     var message = await webSocket.ReceiveAsync<BinanceQuote>(stoppingToken);
                     if (message == null)
                         continue;
-                    lock (this)
-                        _latestQuote = message;
+                    store.Set(new Quote(instrumentCode, Exchange.Binance, message.BidPrice, message.AskPrice));
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
