@@ -12,9 +12,12 @@ public class WebSocketConfigurator implements WebSocketConfigurer {
     @Autowired
     private OrderBookConsumer orderBookConsumer;
 
+    @Autowired
+    private TradeTapeConsumer tradeTapeConsumer;
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(orderBookConsumer, "/market-data/book").setAllowedOrigins("*");
-        registry.addHandler(orderBookConsumer, "/market-data/trade").setAllowedOrigins("*");
+        registry.addHandler(tradeTapeConsumer, "/market-data/trade").setAllowedOrigins("*");
     }
 }

@@ -10,3 +10,9 @@ export class OrderBookResponse {
     bids!: OrderBookEntry[]
     asks!: OrderBookEntry[]
 }
+
+export class Trade {
+    size!: number;
+    price!: number;
+    id!:string;
+}

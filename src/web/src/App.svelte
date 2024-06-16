@@ -5,6 +5,7 @@
   import Deposit from "./lib/Deposit.svelte";
   import OrderBook from "./lib/OrderBook.svelte";
   import PlaceOrder from "./lib/PlaceOrder.svelte";
+    import Trades from './lib/Trades.svelte';
 
   let user: WhoAmIResponse | null;
   let refreshBalances: () => void;
@@ -29,6 +30,9 @@
         </div>
         <div>
           <PlaceOrder on:submit-order={handleOrder}></PlaceOrder>
+        </div>
+        <div>
+          <Trades instrumentCode="BTC/USD"></Trades>
         </div>
       </div>
       <div class="row">

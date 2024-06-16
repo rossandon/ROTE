@@ -24,6 +24,8 @@ public class TradeTapeConsumer extends AbstractWebSocketHandler implements Runna
     private static final Logger log = Logger.getLogger(OrderBookConsumer.class);
 
     private final RoteKafkaConsumer roteKafkaConsumer;
+    private final HashMap<String, List<Trade>> recent = new HashMap<>();
+
     private final HashMap<String, List<WebSocketSession>> webSocketConnections = new HashMap<>();
 
     public TradeTapeConsumer(RoteKafkaConsumer roteKafkaConsumer) {
@@ -34,18 +36,43 @@ public class TradeTapeConsumer extends AbstractWebSocketHandler implements Runna
     public void run() {
         roteKafkaConsumer.consumeFromEnd(TradeDataTopic, 10, (ConsumerRecord<String, Trade> result) -> {
             var snapshot = result.value();
-            List<WebSocketSession> sessions;
-            synchronized (webSocketConnections) {
-                var listOrNull = webSocketConnections.get(snapshot.instrumentCode());
-                if (listOrNull == null) {
+            recordToRecentTrades(snapshot);
+            broadcastTradeToAllConnections(snapshot);
+        });
+    }
+
+    private void broadcastTradeToAllConnections(Trade snapshot) {
+        var instrumentCode = snapshot.instrumentCode();
+        List<WebSocketSession> sessions;
+        synchronized (webSocketConnections) {
+            var listOrNull = webSocketConnections.get(instrumentCode);
+            if (listOrNull == null) {
+                return;
+            }
+            sessions = new ArrayList<>(listOrNull);
+        }
+        for (var session : sessions) {
+            sendTrade(session, snapshot);
+        }
+    }
+
+    private void recordToRecentTrades(Trade snapshot) {
+        var instrumentCode = snapshot.instrumentCode();
+
+        synchronized (recent) {
+            var existing = recent.computeIfAbsent(instrumentCode, l -> new ArrayList<>());
+            if (!existing.isEmpty()) {
+                var mostRecent = existing.get(existing.size() - 1);
+                if (mostRecent.id() >= snapshot.id()) {
                     return;
                 }
-                sessions = new ArrayList<>(listOrNull);
             }
-            for (var session : sessions) {
-                sendTrade(session, snapshot);
+
+            existing.add(snapshot);
+            if (existing.size() > 10) {
+                existing.remove(0);
             }
-        });
+        }
     }
 
     @Override
@@ -54,6 +81,18 @@ public class TradeTapeConsumer extends AbstractWebSocketHandler implements Runna
         synchronized (webSocketConnections) {
             var entries = webSocketConnections.computeIfAbsent(instrumentCode, a -> new ArrayList<>());
             entries.add(session);
+        }
+        List<Trade> tradesToSend = null;
+        synchronized (recent) {
+            var recentTrades = recent.get(instrumentCode);
+            if (recentTrades != null) {
+                tradesToSend = new ArrayList<>(recentTrades);
+            }
+        }
+        if (tradesToSend != null) {
+            for (var trade : tradesToSend) {
+                sendTrade(session, trade);
+            }
         }
     }
 
