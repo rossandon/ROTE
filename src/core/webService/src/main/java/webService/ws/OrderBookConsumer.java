@@ -3,17 +3,11 @@ package webService.ws;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.log4j.Logger;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
-import org.springframework.web.socket.config.annotation.EnableWebSocket;
-import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
-import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.util.UriComponentsBuilder;
 import shared.kafka.RoteKafkaConsumer;
-import shared.orderBook.OrderBookEntry;
 import shared.service.results.OrderBookSnapshot;
 
 import java.io.IOException;
@@ -22,25 +16,29 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static shared.service.TradingEngineServiceConsts.MarketDataTopic;
+import static shared.service.TradingEngineServiceConsts.OrderBookDataTopic;
 
 @Component
-public class MarketDataConsumer extends AbstractWebSocketHandler implements Runnable {
-    private static final Logger log = Logger.getLogger(MarketDataConsumer.class);
+public class OrderBookConsumer extends AbstractWebSocketHandler implements Runnable {
+    private static final Logger log = Logger.getLogger(OrderBookConsumer.class);
 
     private final RoteKafkaConsumer roteKafkaConsumer;
     private final HashMap<String, OrderBookSnapshot> snapshots = new HashMap<>();
     private final HashMap<String, List<WebSocketSession>> webSocketConnections = new HashMap<>();
 
-    public MarketDataConsumer(RoteKafkaConsumer roteKafkaConsumer) {
+    public OrderBookConsumer(RoteKafkaConsumer roteKafkaConsumer) {
         this.roteKafkaConsumer = roteKafkaConsumer;
     }
 
     @Override
     public void run() {
-        roteKafkaConsumer.consumeFromEnd(MarketDataTopic, 1, (ConsumerRecord<String, OrderBookSnapshot> result) -> {
+        roteKafkaConsumer.consumeFromEnd(OrderBookDataTopic, 1, (ConsumerRecord<String, OrderBookSnapshot> result) -> {
             var snapshot = result.value();
             synchronized (snapshots) {
+                var existing = snapshots.get(snapshot.instrumentCode());
+                if (existing != null && existing.sequence() > snapshot.sequence()) {
+                    return;
+                }
                 snapshots.put(snapshot.instrumentCode(), snapshot);
             }
             List<WebSocketSession> sessions;
@@ -71,7 +69,7 @@ public class MarketDataConsumer extends AbstractWebSocketHandler implements Runn
         }
 
         if (latestBookSnapshot == null) {
-            latestBookSnapshot = new OrderBookSnapshot(instrumentCode, new ArrayList<>(), new ArrayList<>());
+            latestBookSnapshot = new OrderBookSnapshot(instrumentCode, -1, new ArrayList<>(), new ArrayList<>());
         }
         sendBookSnapshot(session, latestBookSnapshot);
     }

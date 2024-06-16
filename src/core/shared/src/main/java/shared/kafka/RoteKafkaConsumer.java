@@ -83,7 +83,17 @@ public class RoteKafkaConsumer implements AutoCloseable {
         consumerProps.put("enable.auto.commit", false);
         try (var consumer = new KafkaConsumer<TKey, TValue>(consumerProps)) {
             var namespacedTopic = KafkaHelpers.getNamespacedTopic(topic, namespace);
-            consumer.subscribe(List.of(namespacedTopic), new SeekFromEndListener<>(consumer, lookback));
+            var partitions = consumer.partitionsFor(namespacedTopic)
+                    .stream()
+                    .map(p -> new TopicPartition(p.topic(), p.partition()))
+                    .toList();
+            consumer.assign(partitions);
+            var topicPartitionLongMap = consumer.endOffsets(partitions);
+            topicPartitionLongMap.forEach((partition, offset) ->
+            {
+                log.info(String.format("Seek %s to %d", partition.topic(), offset));
+                consumer.seek(partition, Math.max(offset - lookback, 0));
+            });
             while (!closed) {
                 var results = consumer.poll(Duration.ofSeconds(1));
                 for (var result : results) {

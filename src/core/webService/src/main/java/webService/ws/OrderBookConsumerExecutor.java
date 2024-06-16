@@ -5,12 +5,12 @@ import org.springframework.stereotype.Component;
 import shared.utils.RunnableExecutor;
 
 @Component
-public class MarketDataConsumerExecutor extends RunnableExecutor {
+public class OrderBookConsumerExecutor extends RunnableExecutor {
     @Autowired
-    private MarketDataConsumer marketDataConsumer;
+    private OrderBookConsumer orderBookConsumer;
 
     @Override
     protected Runnable getBean() {
-        return marketDataConsumer;
+        return orderBookConsumer;
     }
 }

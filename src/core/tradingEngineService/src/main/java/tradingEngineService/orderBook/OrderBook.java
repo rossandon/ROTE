@@ -6,7 +6,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 
 public class OrderBook {
-    private long idCounter;
+    public long orderSequence;
+    public long tradeSequence;
     public final ArrayList<OrderBookEntry> bids = new ArrayList<>();
     public final ArrayList<OrderBookEntry> asks = new ArrayList<>();
 
@@ -59,7 +60,7 @@ public class OrderBook {
     }
 
     private OrderBookEntry addRestingOrder(OrderBookLimitOrder order) {
-        var newEntry = new OrderBookEntry(order.size(), order.price(), order.accountId(), idCounter++, order.side());
+        var newEntry = new OrderBookEntry(order.size(), order.price(), order.accountId(), orderSequence++, order.side());
         var orderBookEntries = getRestingSide(order.side());
         for (int i = 0; i < orderBookEntries.size(); i++) {
             var entry = orderBookEntries.get(i);
@@ -83,7 +84,7 @@ public class OrderBook {
 
         for (var i = 0; i < executableEntries.size(); i++) {
             var entry = allEntries.get(i);
-            var trade = order.fill(entry);
+            var trade = new OrderBookTrade(tradeSequence++, order.size().min(entry.size()), entry.price(), order.side(), entry.accountId(), order.accountId());
             var remainingOnOrder = entry.size().subtract(trade.size());
             allEntries.set(i, entry.withSize(remainingOnOrder));
             trades.add(trade);

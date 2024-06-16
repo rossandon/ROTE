@@ -11,10 +11,6 @@ public record OrderBookLimitOrder(BigDecimal size, BigDecimal price, OrderBookSi
         this(BigDecimal.valueOf(size), BigDecimal.valueOf(price), side, accountId);
     }
 
-    public OrderBookTrade fill(OrderBookEntry entry) {
-        return new OrderBookTrade(size.min(entry.size()), entry.price(), side, entry.accountId(), accountId);
-    }
-
     public boolean canFill(OrderBookEntry entry) {
         return side == OrderBookSide.Buy ? price.compareTo(entry.price()) >= 0 : price.compareTo(entry.price()) <= 0;
     }

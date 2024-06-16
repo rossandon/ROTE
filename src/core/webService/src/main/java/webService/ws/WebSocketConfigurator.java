@@ -10,10 +10,11 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @EnableWebSocket
 public class WebSocketConfigurator implements WebSocketConfigurer {
     @Autowired
-    private MarketDataConsumer marketDataConsumer;
+    private OrderBookConsumer orderBookConsumer;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(marketDataConsumer, "/market/data").setAllowedOrigins("*");
+        registry.addHandler(orderBookConsumer, "/market-data/book").setAllowedOrigins("*");
+        registry.addHandler(orderBookConsumer, "/market-data/trade").setAllowedOrigins("*");
     }
 }

@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 import shared.kafka.*;
 import shared.orderBook.LimitOrderResultStatus;
+import shared.orderBook.OrderBookLimitOrderResult;
 import shared.service.TradingEngineServiceConsts;
 import shared.service.TradingEngineServiceRequest;
 import shared.service.TradingEngineServiceRequestType;
@@ -35,7 +36,8 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
 
     private final RoteKafkaConsumer consumer;
     private final RoteKafkaProducer<String, TradingEngineServiceResponse> kafkaProducer;
-    private final RoteKafkaProducer<String, OrderBookSnapshot> marketDataProducer;
+    private final RoteKafkaProducer<String, OrderBookSnapshot> orderBookSnapshotProducer;
+    private final RoteKafkaProducer<String, Trade> tradeProducer;
     private final KafkaConfigurationProvider kafkaConfigurationProvider;
     private final TradingEngine tradingEngine;
     private final ReferentialInventory referentialInventory;
@@ -45,7 +47,8 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
 
     public TradingEngineStreamingService(RoteKafkaConsumer requestConsumer,
                                          RoteKafkaProducer<String, TradingEngineServiceResponse> responseProducer,
-                                         RoteKafkaProducer<String, OrderBookSnapshot> marketDataProducer,
+                                         RoteKafkaProducer<String, OrderBookSnapshot> orderBookSnapshotProducer,
+                                         RoteKafkaProducer<String, Trade> tradeProducer,
                                          KafkaConfigurationProvider kafkaConfigurationProvider,
                                          TradingEngine tradingEngine,
                                          ReferentialInventory referentialInventory,
@@ -53,7 +56,8 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
                                          ITradingEngineContextPersistor tradingContextPersistor) {
         this.consumer = requestConsumer;
         this.kafkaProducer = responseProducer;
-        this.marketDataProducer = marketDataProducer;
+        this.orderBookSnapshotProducer = orderBookSnapshotProducer;
+        this.tradeProducer = tradeProducer;
         this.kafkaConfigurationProvider = kafkaConfigurationProvider;
         this.tradingEngine = tradingEngine;
         this.referentialInventory = referentialInventory;
@@ -75,7 +79,8 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
             try (var adminClient = new RoteKafkaAdminClient(this.kafkaConfigurationProvider)) {
                 adminClient.createTopic(TradingEngineServiceConsts.WriteRequestTopic, 1);
                 adminClient.createTopic(TradingEngineServiceConsts.ReadRequestTopic, 1);
-                adminClient.createTopic(TradingEngineServiceConsts.MarketDataTopic, 1);
+                adminClient.createTopic(TradingEngineServiceConsts.OrderBookDataTopic, 1);
+                adminClient.createTopic(TradingEngineServiceConsts.TradeDataTopic, 1);
             }
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             throw new RuntimeException(e);
@@ -170,18 +175,30 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         var instrument = referentialInventory.lookupInstrumentOrThrow(request.instrumentCode());
         var limitOrder = new LimitOrder(instrument, new Account(request.accountId()), request.amount(), request.price(), request.side());
         var limitOrderResult = tradingEngine.limitOrder(limitOrder);
-        if (limitOrderResult.type() == LimitOrderResultStatus.Ok) sendOrderBookSnapshotUpdate(instrument);
+        if (limitOrderResult.type() == LimitOrderResultStatus.Ok) {
+            sendOrderBookSnapshotUpdate(instrument);
+            sendTradeUpdates(instrument, limitOrderResult.result());
+        }
         return new TradingEngineServiceResponse(limitOrderResult);
+    }
+
+    private void sendTradeUpdates(Instrument instrument, OrderBookLimitOrderResult result) {
+        if (result.trades() == null)
+            return;
+        for (var trade : result.trades()) {
+            var marketDataTrade = new Trade(instrument.code(), trade.id(), trade.size(), trade.price(), trade.takerSide());
+            tradeProducer.produce(TradingEngineServiceConsts.TradeDataTopic, instrument.code(), marketDataTrade, null, true);
+        }
     }
 
     private void sendOrderBookSnapshotUpdate(Instrument instrument) {
         var book = getOrderBookSnapshot(instrument);
-        marketDataProducer.produce(TradingEngineServiceConsts.MarketDataTopic, instrument.code(), book, null, true);
+        orderBookSnapshotProducer.produce(TradingEngineServiceConsts.OrderBookDataTopic, instrument.code(), book, null, true);
     }
 
     private OrderBookSnapshot getOrderBookSnapshot(Instrument instrument) {
         var orderBook = tradingEngineContextInstance.getContext().ensureOrderBook(instrument);
-        return new OrderBookSnapshot(instrument.code(), orderBook.orderBook().bids, orderBook.orderBook().asks);
+        return new OrderBookSnapshot(instrument.code(), orderBook.orderBook().orderSequence, orderBook.orderBook().bids, orderBook.orderBook().asks);
     }
 
     private TradingEngineServiceResponse handleCancelRequest(TradingEngineServiceRequest request) throws Exception {
@@ -212,6 +229,6 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     public void close() {
         consumer.close();
         kafkaProducer.close();
-        marketDataProducer.close();
+        orderBookSnapshotProducer.close();
     }
 }

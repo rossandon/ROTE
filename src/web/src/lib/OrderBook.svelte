@@ -16,7 +16,7 @@
     }
 
     onMount(() => {
-        let socket = new WebSocket("ws://localhost:8081/market/data?instrumentCode=" + instrumentCode, "protocolOne")
+        let socket = new WebSocket("ws://localhost:8081/market-data/book?instrumentCode=" + instrumentCode, "protocolOne")
         socket.onmessage = m => {
             var bookResponse = JSON.parse(m.data)
             bids = applyLen(bookResponse.bids);
@@ -26,7 +26,7 @@
 </script>
 
 {#if bids != null && asks != null}
-<table>
+<table class="order-book">
     <thead>
         <tr>
             <th>
@@ -40,7 +40,7 @@
     </thead>
     <tbody>
         <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={asks}></OrderBookEntryList>
-        <tr><td colspan="3">Mid</td></tr>
+        <tr class="mid"><td colspan="3">Mid</td></tr>
         <OrderBookEntryList on:order-canceled instrumentCode="{instrumentCode}" bookEntryList={bids}></OrderBookEntryList>
     </tbody>
 </table>
