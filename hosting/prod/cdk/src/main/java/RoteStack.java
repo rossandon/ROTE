@@ -74,6 +74,12 @@ public class RoteStack extends Stack {
                 .exclude(List.of(".gradle"))
                 .build();
 
+        var algoServiceImage = DockerImageAsset.Builder.create(this, "AlgoServiceImage")
+                .platform(Platform.LINUX_ARM64)
+                .directory("../../src/algo")
+                .exclude(List.of("**/bin", "**/obj", ".idea", "Dockerfile"))
+                .build();
+
         var webService = ApplicationLoadBalancedFargateService.Builder.create(this, "WebService")
                 .cluster(cluster)
                 .cpu(512)
@@ -93,6 +99,7 @@ public class RoteStack extends Stack {
                                         "server.forward-headers-strategy", "NATIVE",
                                         "spring.data.redis.cluster.nodes", String.format("%s:%s", redisCluster.getAttrEndpointAddress(), redisCluster.getAttrEndpointPort()),
                                         "spring.data.redis.ssl.enabled", "true",
+                                        "backdoor-auth.password", "test",
                                         clientIdProp, googleOAuthClientId
                                 ))
                                 .secrets(secrets)
@@ -127,6 +134,29 @@ public class RoteStack extends Stack {
                 .desiredCount(1)
                 .cluster(cluster)
                 .taskDefinition(tradingEngineServiceTaskDef)
+                .build();
+
+        var algoServiceTaskDef = FargateTaskDefinition.Builder.create(this, "AlgoServiceTaskDef")
+                .runtimePlatform(RuntimePlatform.builder().cpuArchitecture(CpuArchitecture.ARM64).build())
+                .cpu(1024)
+                .memoryLimitMiB(4096)
+                .build();
+
+        var algoContainerDef = ContainerDefinitionOptions.builder()
+                .image(ContainerImage.fromDockerImageAsset(algoServiceImage))
+                .logging(LogDrivers.awsLogs(AwsLogDriverProps.builder().streamPrefix("Algo").build()))
+                .environment(Map.of(
+                        "Rote__Url", String.format("https://%s", domainName),
+                        "Rote__Password", "test"
+                ))
+                .build();
+
+        algoServiceTaskDef.addContainer("main", algoContainerDef);
+
+        FargateService.Builder.create(this, "AlgoService")
+                .desiredCount(1)
+                .cluster(cluster)
+                .taskDefinition(algoServiceTaskDef)
                 .build();
     }
 

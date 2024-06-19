@@ -1,21 +1,32 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using Microsoft.Extensions.Options;
 
 namespace Algo;
 
-public class RoteClient(HttpClient client)
+public class RoteClient
 {
+    private readonly HttpClient _client;
+    private readonly string _password;
+    
+    public RoteClient(HttpClient client, IOptions<RoteConfiguration> options)
+    {
+        client.BaseAddress = new Uri(options.Value.Url);
+        _client = client;
+        _password = options.Value.Password;
+    }
+    
     public void SetUsername(string username)
     {
-        var authenticationString = $"{username}:devpassword";
+        var authenticationString = $"{username}:{_password}";
         var base64EncodedAuthenticationString = Convert.ToBase64String(Encoding.UTF8.GetBytes(authenticationString));
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64EncodedAuthenticationString);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64EncodedAuthenticationString);
     }
     
     public async Task<WhoAmIResponse> WhoAmI(CancellationToken cancellationToken)
     {
-        var resp = await client.GetFromJsonAsync<WhoAmIResponse>("/system/whoami", cancellationToken);
+        var resp = await _client.GetFromJsonAsync<WhoAmIResponse>("/system/whoami", cancellationToken);
         if (resp == null)
             throw new Exception("No response");
         return resp;
@@ -23,7 +34,7 @@ public class RoteClient(HttpClient client)
 
     public async Task<BalanceResponse> GetBalances(CancellationToken cancellationToken)
     {
-        var resp = await client.GetFromJsonAsync<BalanceResponse>("/balances/list", cancellationToken);
+        var resp = await _client.GetFromJsonAsync<BalanceResponse>("/balances/list", cancellationToken);
         if (resp == null)
             throw new Exception("No response");
         return resp;
@@ -31,7 +42,7 @@ public class RoteClient(HttpClient client)
 
     public async Task Deposit(string assetCode, long amount, CancellationToken cancellationToken)
     {
-        var resp = await client.PostAsync("/balances/deposit",
+        var resp = await _client.PostAsync("/balances/deposit",
             new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
             {
                 new("assetCode", assetCode),
@@ -44,7 +55,7 @@ public class RoteClient(HttpClient client)
     public async Task PlaceOrder(string instrumentCode, decimal price, decimal size, TradeSide side,
         CancellationToken cancellationToken)
     {
-        var resp = await client.PostAsync("/orders/submit",
+        var resp = await _client.PostAsync("/orders/submit",
             new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
             {
                 new("instrumentCode", instrumentCode),
@@ -57,7 +68,7 @@ public class RoteClient(HttpClient client)
 
     public async Task CancelAll(string instrumentCode, CancellationToken cancellationToken)
     {
-        var resp = await client.PostAsync("/orders/cancel-all",
+        var resp = await _client.PostAsync("/orders/cancel-all",
             new FormUrlEncodedContent(new List<KeyValuePair<string, string>> { new("instrumentCode", instrumentCode) }),
             cancellationToken);
         resp.EnsureSuccessStatusCode();
