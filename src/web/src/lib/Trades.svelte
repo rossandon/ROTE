@@ -8,8 +8,15 @@
     export let instrumentCode: string;
 
     onMount(() => {
+        var loc = window.location, wsUrlBase;
+        if (loc.protocol === "https:") {
+            wsUrlBase = "wss:";
+        } else {
+            wsUrlBase = "ws:";
+        }
+        wsUrlBase += "//" + loc.host;
         let socket = new WebSocket(
-            "ws://localhost:8081/market-data/trade?instrumentCode=" +
+            wsUrlBase + "/market-data/trade?instrumentCode=" +
                 instrumentCode,
             "protocolOne",
         );

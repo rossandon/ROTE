@@ -1,16 +1,14 @@
-import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.*;
 import software.amazon.awscdk.services.certificatemanager.Certificate;
 import software.amazon.awscdk.services.certificatemanager.CertificateValidation;
-import software.amazon.awscdk.services.ec2.Peer;
-import software.amazon.awscdk.services.ec2.Port;
-import software.amazon.awscdk.services.ec2.SecurityGroup;
-import software.amazon.awscdk.services.ec2.Vpc;
+import software.amazon.awscdk.services.ec2.*;
 import software.amazon.awscdk.services.ecr.assets.DockerImageAsset;
 import software.amazon.awscdk.services.ecr.assets.Platform;
 import software.amazon.awscdk.services.ecs.*;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskImageOptions;
+import software.amazon.awscdk.services.elasticache.CfnServerlessCache;
+import software.amazon.awscdk.services.elasticache.CfnSubnetGroup;
 import software.amazon.awscdk.services.elasticloadbalancingv2.HealthCheck;
 import software.amazon.awscdk.services.msk.alpha.KafkaVersion;
 import software.amazon.awscdk.services.route53.HostedZone;
@@ -39,6 +37,8 @@ public class RoteStack extends Stack {
                 .vpc(vpc).build();
 
         var kafkaCluster = kafkaCluster(vpc);
+
+        var redisCluster = redisCluster(vpc);
 
         var hostedZone = HostedZone.fromHostedZoneAttributes(this, "HostedZone", ManualResources.Route53HostedZone);
 
@@ -91,6 +91,8 @@ public class RoteStack extends Stack {
                                         "kafka.tls", "true",
                                         "server.use-forward-headers", "true",
                                         "server.forward-headers-strategy", "NATIVE",
+                                        "spring.data.redis.cluster.nodes", String.format("%s:%s", redisCluster.getAttrEndpointAddress(), redisCluster.getAttrEndpointPort()),
+                                        "spring.data.redis.ssl.enabled", "true",
                                         clientIdProp, googleOAuthClientId
                                 ))
                                 .secrets(secrets)
@@ -126,6 +128,24 @@ public class RoteStack extends Stack {
                 .cluster(cluster)
                 .taskDefinition(tradingEngineServiceTaskDef)
                 .build();
+    }
+
+    private CfnServerlessCache redisCluster(Vpc vpc) {
+        var redisSecurityGroup = SecurityGroup.Builder.create(this, "RedisSecurityGroup")
+                .vpc(vpc)
+                .build();
+
+        redisSecurityGroup.addIngressRule(Peer.anyIpv4(), Port.tcp(6379));
+        redisSecurityGroup.addIngressRule(Peer.anyIpv4(), Port.tcp(6380));
+
+        var cacheCluster = CfnServerlessCache.Builder.create(this, "redis")
+                .engine("redis")
+                .serverlessCacheName("redis")
+                .subnetIds(vpc.getPrivateSubnets().stream().map(ISubnet::getSubnetId).toList())
+                .securityGroupIds(List.of(redisSecurityGroup.getSecurityGroupId()))
+                .build();
+
+        return cacheCluster;
     }
 
     private software.amazon.awscdk.services.msk.alpha.Cluster kafkaCluster(Vpc vpc) {

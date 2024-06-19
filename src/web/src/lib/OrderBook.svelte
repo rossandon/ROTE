@@ -16,7 +16,14 @@
     }
 
     onMount(() => {
-        let socket = new WebSocket("ws://localhost:8081/market-data/book?instrumentCode=" + instrumentCode, "protocolOne")
+        var loc = window.location, wsUrlBase;
+        if (loc.protocol === "https:") {
+            wsUrlBase = "wss:";
+        } else {
+            wsUrlBase = "ws:";
+        }
+        wsUrlBase += "//" + loc.host;
+        let socket = new WebSocket(wsUrlBase + "/market-data/book?instrumentCode=" + instrumentCode, "protocolOne")
         socket.onmessage = m => {
             var bookResponse = JSON.parse(m.data)
             bids = applyLen(bookResponse.bids);
