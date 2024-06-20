@@ -23,7 +23,7 @@
             wsUrlBase = "ws:";
         }
         wsUrlBase += "//" + loc.host;
-        let socket = new WebSocket(wsUrlBase + "/market-data/book?instrumentCode=" + instrumentCode, "protocolOne")
+        let socket = new WebSocket(wsUrlBase + "/market-data/book?instrumentCode=" + instrumentCode)
         socket.onmessage = m => {
             var bookResponse = JSON.parse(m.data)
             bids = applyLen(bookResponse.bids);

@@ -15,11 +15,21 @@
             wsUrlBase = "ws:";
         }
         wsUrlBase += "//" + loc.host;
+        let interval: number
         let socket = new WebSocket(
             wsUrlBase + "/market-data/trade?instrumentCode=" +
-                instrumentCode,
-            "protocolOne",
+                instrumentCode
         );
+        socket.onopen = m => {
+              // to Keep the connection alive
+            interval = setInterval(() => {
+                const sendMessage = JSON.stringify({ ping: 1 });
+                socket.send(sendMessage);
+            }, 5000);
+        }
+        socket.onclose = m => {
+            clearInterval(interval);
+        }
         socket.onmessage = (m) => {
             console.log(m.data)
             var trade = JSON.parse(m.data);
