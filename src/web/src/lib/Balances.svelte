@@ -13,18 +13,8 @@
     refresh()
   })
 </script>
-
-<table>
-  <thead>
-    <tr>
-      <th>
-        Asset
-      </th>
-      <th>
-        Balance
-      </th>
-    </tr>
-  </thead>
+<h5 class="text-center">Balances</h5>
+<table class="table">
   <tbody>
     {#each Object.keys(balances) as balance}
       <tr>

@@ -1,17 +1,17 @@
 .order-book {
     font-family: monospace;
-    font-weight: bold;
+    font-size: 14px;
 
     .mid {
-        font-weight: normal;
         font-style: italic;
-
-        /* td {
-            text-align: center;
-        } */
     }
 }
 
+.trades {
+    font-family: monospace;
+    font-size: 14px;
+}
+/* 
 .row {
     display: flex;
     justify-content: center;
@@ -75,4 +75,4 @@ form.order-cancel {
     --width-card-medium: 460px;
     --width-card-wide: 800px;
     --width-content: 1080px;
-}
+} */

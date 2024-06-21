@@ -2,7 +2,7 @@ namespace Algo;
 
 public class Quoter(QuoteStore quoteStore, RoteClient roteClient, ILogger<Quoter> logger)
 {
-    private const int MinBalance = 1_000_000;
+    private const int MinBalance = 1_000_000_000;
     private Quote? _previousQuote;
     public QuoterConfiguration Configuration { get; set; }
 

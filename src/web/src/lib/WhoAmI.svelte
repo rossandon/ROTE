@@ -39,7 +39,8 @@
 </script>
 
 {#if user != null}
-    Hello, {user.name}. <a href="/logout">Logout</a>
+    <span class="px-3">Hello, {user.name}.</span>
+    <a href="/logout"><button type="button" class="btn btn-outline-light me-2">Logout</button></a>
 {/if}
 
 
