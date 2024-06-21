@@ -8,7 +8,6 @@ import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 import org.springframework.web.util.UriComponentsBuilder;
 import shared.kafka.RoteKafkaConsumer;
-import shared.service.results.OrderBookSnapshot;
 import shared.service.results.Trade;
 
 import java.io.IOException;
@@ -36,8 +35,9 @@ public class TradeTapeConsumer extends AbstractWebSocketHandler implements Runna
     public void run() {
         roteKafkaConsumer.consumeFromEnd(TradeDataTopic, 10, (ConsumerRecord<String, Trade> result) -> {
             var snapshot = result.value();
-            recordToRecentTrades(snapshot);
-            broadcastTradeToAllConnections(snapshot);
+            if (recordToRecentTrades(snapshot)) {
+                broadcastTradeToAllConnections(snapshot);
+            }
         });
     }
 
@@ -56,7 +56,7 @@ public class TradeTapeConsumer extends AbstractWebSocketHandler implements Runna
         }
     }
 
-    private void recordToRecentTrades(Trade snapshot) {
+    private boolean recordToRecentTrades(Trade snapshot) {
         var instrumentCode = snapshot.instrumentCode();
 
         synchronized (recent) {
@@ -64,7 +64,7 @@ public class TradeTapeConsumer extends AbstractWebSocketHandler implements Runna
             if (!existing.isEmpty()) {
                 var mostRecent = existing.get(existing.size() - 1);
                 if (mostRecent.id() >= snapshot.id()) {
-                    return;
+                    return false;
                 }
             }
 
@@ -72,6 +72,8 @@ public class TradeTapeConsumer extends AbstractWebSocketHandler implements Runna
             if (existing.size() > 10) {
                 existing.remove(0);
             }
+
+            return true;
         }
     }
 
