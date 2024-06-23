@@ -7,7 +7,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 import org.springframework.web.util.UriComponentsBuilder;
+import shared.kafka.KafkaConfigurationProvider;
+import shared.kafka.RoteKafkaAdminClient;
 import shared.kafka.RoteKafkaConsumer;
+import shared.service.TradingEngineServiceConsts;
 import shared.service.results.Trade;
 
 import java.io.IOException;
@@ -15,6 +18,8 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import static shared.service.TradingEngineServiceConsts.TradeDataTopic;
 
@@ -23,16 +28,26 @@ public class TradeTapeConsumer extends AbstractWebSocketHandler implements Runna
     private static final Logger log = Logger.getLogger(OrderBookConsumer.class);
 
     private final RoteKafkaConsumer roteKafkaConsumer;
+    private final KafkaConfigurationProvider kafkaConfigurationProvider;
     private final HashMap<String, List<Trade>> recent = new HashMap<>();
 
     private final HashMap<String, List<WebSocketSession>> webSocketConnections = new HashMap<>();
 
-    public TradeTapeConsumer(RoteKafkaConsumer roteKafkaConsumer) {
+    public TradeTapeConsumer(RoteKafkaConsumer roteKafkaConsumer, KafkaConfigurationProvider kafkaConfigurationProvider) {
         this.roteKafkaConsumer = roteKafkaConsumer;
+        this.kafkaConfigurationProvider = kafkaConfigurationProvider;
     }
 
     @Override
     public void run() {
+        try {
+            try (var adminClient = new RoteKafkaAdminClient(this.kafkaConfigurationProvider)) {
+                adminClient.createTopic(TradingEngineServiceConsts.TradeDataTopic, 1);
+            }
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
+
         roteKafkaConsumer.consumeFromEnd(TradeDataTopic, 10, (ConsumerRecord<String, Trade> result) -> {
             var snapshot = result.value();
             if (recordToRecentTrades(snapshot)) {
