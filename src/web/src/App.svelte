@@ -25,7 +25,7 @@
     tabindex="-1"
     id="offcanvas"
     aria-labelledby="offcanvasLabel"
-    data-bs-scroll="true" data-bs-backdrop="false"
+    data-bs-scroll="true" data-bs-backdrop="false" data-bs-keyboard="false"
   >
     <div class="offcanvas-header">
     </div>
@@ -34,6 +34,7 @@
         <div class="row">
           <Balances bind:refresh={refreshBalances} />
         </div>
+        <br/>
         <br/>
         <div class="row">
           <Deposit on:deposit={handleDeposit} />
@@ -48,7 +49,7 @@
           href="/"
           class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none"
         >
-          <span class="fs-4 em">ROTE</span>
+          <span class="fs-4 app-title">ROTE</span>
         </a>
         <div class="text-end">
           <WhoAmI bind:user />

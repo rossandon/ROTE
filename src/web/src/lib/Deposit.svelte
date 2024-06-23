@@ -24,8 +24,7 @@
         });
     };
 </script>
-
-<h5 class="text-center">Deposit</h5>
+<h5 class="text-center"><span class="p-1 border-bottom" style="width: 200px">Deposit</span></h5>
 <form
     method="post"
     action="/balances/deposit"

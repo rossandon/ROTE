@@ -13,7 +13,7 @@
     refresh()
   })
 </script>
-<h5 class="text-center">Balances</h5>
+<h5 class="text-center"><span class="p-1 border-bottom">Balances</span></h5>
 <table class="table">
   <tbody>
     {#each Object.keys(balances) as balance}
