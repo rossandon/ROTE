@@ -56,7 +56,7 @@ public class RoteStack extends Stack {
         var datadogApiKeySecret = Secret.fromSecretCompleteArn(this, "DatadogApiKeySecret", ManualResources.DatadogApiKeySecretArn);
         var datadogApiKeyProp = "DD_API_KEY";
 
-        var secrets = Map.of(
+        var webServiceSecrets = Map.of(
                 clientSecretProp, software.amazon.awscdk.services.ecs.Secret.fromSecretsManager(googleOAuthSecret),
                 datadogApiKeyProp, software.amazon.awscdk.services.ecs.Secret.fromSecretsManager(datadogApiKeySecret));
 
@@ -102,7 +102,7 @@ public class RoteStack extends Stack {
                                         "backdoor-auth.password", "test",
                                         clientIdProp, googleOAuthClientId
                                 ))
-                                .secrets(secrets)
+                                .secrets(webServiceSecrets)
                                 .build())
                 .memoryLimitMiB(2048)
                 .publicLoadBalancer(true)
@@ -110,6 +110,9 @@ public class RoteStack extends Stack {
 
         webService.getTargetGroup().setAttribute("deregistration_delay.timeout_seconds", "5");
         webService.getTargetGroup().configureHealthCheck(HealthCheck.builder().path("/system/ping").build());
+
+        var tradingEngineSecrets = Map.of(
+                datadogApiKeyProp, software.amazon.awscdk.services.ecs.Secret.fromSecretsManager(datadogApiKeySecret));
 
         var tradingEngineServiceTaskDef = FargateTaskDefinition.Builder.create(this, "TradingEngineServiceTaskDef")
                 .cpu(1024)
@@ -126,6 +129,7 @@ public class RoteStack extends Stack {
                         "kafka.tls", "true",
                         "tradingEngineContext.provider", "fresh"
                 ))
+                .secrets(tradingEngineSecrets)
                 .build();
 
         tradingEngineServiceTaskDef.addContainer("main", tradingEngineContainerDef);
@@ -191,6 +195,7 @@ public class RoteStack extends Stack {
                 .clusterName("rote")
                 .securityGroups(List.of(kafkaSecurityGroup))
                 .kafkaVersion(KafkaVersion.V2_6_0)
+                .instanceType(software.amazon.awscdk.services.ec2.InstanceType.of(InstanceClass.T3, InstanceSize.SMALL))
                 .build();
     }
 }
