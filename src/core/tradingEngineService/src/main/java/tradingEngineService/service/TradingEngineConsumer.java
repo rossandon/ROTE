@@ -90,7 +90,7 @@ public class TradingEngineConsumer implements AutoCloseable {
                 var results = consumer.poll(Duration.ofSeconds(1));
                 for (var result : results) {
                     if (initialPartitionOffset == result.offset()) {
-                        log.info(String.format("Finished processing trading engine backlog", topicPartition.topic(), topicPartition.partition()));
+                        log.info("Finished processing trading engine backlog");
                     }
 
                     handleKafkaRecord(result);
