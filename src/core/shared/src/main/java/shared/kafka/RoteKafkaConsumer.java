@@ -20,44 +20,11 @@ public class RoteKafkaConsumer implements AutoCloseable {
 
     private final String namespace;
     private final Properties props;
-    private final ProcessingQueue controlMessageQueue = new ProcessingQueue();
-
     private boolean closed;
 
     public RoteKafkaConsumer(KafkaConfigurationProvider kafkaConfigurationProvider) {
         this.namespace = kafkaConfigurationProvider.getEnvironmentName();
         this.props = kafkaConfigurationProvider.buildConsumerProps();
-    }
-
-    public <TKey, TValue> void consumePartitions(Collection<TopicPartitionAndOffet> topics, boolean autoCommit,
-                                                 IKafkaConsumerHandler<TKey, TValue> handler,
-                                                 IKafkaControlMessageHandler controlMessageHandler) {
-        var consumerProps = (Properties) props.clone();
-        consumerProps.put("enable.auto.commit", Boolean.toString(autoCommit).toLowerCase());
-        try (var consumer = new KafkaConsumer<TKey, TValue>(consumerProps)) {
-            var topicPartitions = topics.stream().map(t -> new TopicPartition(KafkaHelpers.getNamespacedTopic(t.topic, namespace), t.partition)).toList();
-            consumer.assign(topicPartitions);
-
-            for (var topic : topics) {
-                if (topic.offset.isPresent())
-                    consumer.seek(new TopicPartition(KafkaHelpers.getNamespacedTopic(topic.topic, namespace), topic.partition), topic.offset.get());
-            }
-
-            while (!closed) {
-                var results = consumer.poll(Duration.ofSeconds(1));
-                for (var result : results) {
-                    handler.handle(result);
-                }
-
-                while (true) {
-                    var item = controlMessageQueue.dequeue();
-                    if (item == null) break;
-                    log.debug("Processing control message");
-                    controlMessageHandler.handle(item);
-                    log.debug("Processed control message");
-                }
-            }
-        }
     }
 
     public <TKey, TValue> void consumePartition(String topic, int partition, long offset, boolean autoCommit,
@@ -91,8 +58,9 @@ public class RoteKafkaConsumer implements AutoCloseable {
             var topicPartitionLongMap = consumer.endOffsets(partitions);
             topicPartitionLongMap.forEach((partition, offset) ->
             {
-                log.info(String.format("Seek %s to %d", partition.topic(), offset));
-                consumer.seek(partition, Math.max(offset - lookback, 0));
+                var seekTo = Math.max(offset - lookback, 0);
+                log.info(String.format("Seek %s to %d", partition.topic(), seekTo));
+                consumer.seek(partition, seekTo);
             });
             while (!closed) {
                 var results = consumer.poll(Duration.ofSeconds(1));
@@ -103,16 +71,9 @@ public class RoteKafkaConsumer implements AutoCloseable {
         }
     }
 
-    public Future<Object> queueControlMessage(Object obj) {
-        return controlMessageQueue.queue(obj);
-    }
-
     @Override
     public void close() {
         closed = true;
-    }
-
-    public record TopicPartitionAndOffet(String topic, int partition, Optional<Long> offset) {
     }
 
     public record KafkaHeader(String key, byte[] value) implements Header {

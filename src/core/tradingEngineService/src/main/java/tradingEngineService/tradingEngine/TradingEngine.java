@@ -30,6 +30,10 @@ public class TradingEngine {
         return getContext().getBalance(accountId, asset);
     }
 
+    public InstrumentOrderBook ensureOrderBook(Instrument instrument) {
+        return getContext().ensureOrderBook(instrument);
+    }
+
     public LimitOrderResult limitOrder(LimitOrder order) {
         var hasFunding = tryReserveFunding(order);
         if (!hasFunding)

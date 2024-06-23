@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
 @Component
 public class TradingEngineKafkaRequestResponseClient extends KafkaRequestResponseClient<String, TradingEngineServiceRequest, TradingEngineServiceResponse> {
 
-    static List<TradingEngineServiceRequestType> readRequests = Arrays.stream(new TradingEngineServiceRequestType[] {
+    static List<TradingEngineServiceRequestType> readRequests = Arrays.stream(new TradingEngineServiceRequestType[]{
             TradingEngineServiceRequestType.GetBalances,
             TradingEngineServiceRequestType.GetBalance,
             TradingEngineServiceRequestType.GetBook,
@@ -30,8 +30,6 @@ public class TradingEngineKafkaRequestResponseClient extends KafkaRequestRespons
     }
 
     private static String getTopic(TradingEngineServiceRequest request) {
-        return readRequests.contains(request.type())
-                ? TradingEngineServiceConsts.ReadRequestTopic
-                : TradingEngineServiceConsts.WriteRequestTopic;
+        return TradingEngineServiceConsts.WriteRequestTopic;
     }
 }

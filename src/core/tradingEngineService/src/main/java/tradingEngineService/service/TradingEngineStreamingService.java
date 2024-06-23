@@ -1,10 +1,8 @@
 package tradingEngineService.service;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.header.Header;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
-import shared.kafka.*;
+import shared.kafka.RoteKafkaProducer;
 import shared.orderBook.LimitOrderResultStatus;
 import shared.orderBook.OrderBookLimitOrderResult;
 import shared.service.TradingEngineServiceConsts;
@@ -12,136 +10,56 @@ import shared.service.TradingEngineServiceRequest;
 import shared.service.TradingEngineServiceRequestType;
 import shared.service.TradingEngineServiceResponse;
 import shared.service.results.*;
-import shared.utils.ProcessingQueue;
 import tradingEngineService.referential.Instrument;
 import tradingEngineService.referential.ReferentialInventory;
 import tradingEngineService.tradingEngine.Account;
 import tradingEngineService.tradingEngine.LimitOrder;
 import tradingEngineService.tradingEngine.TradingEngine;
-import tradingEngineService.tradingEngine.TradingEngineContextInstance;
 
 import java.io.Closeable;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeoutException;
 
 @Component
 public class TradingEngineStreamingService implements Runnable, Closeable {
     private static final Logger log = Logger.getLogger(TradingEngineStreamingService.class);
 
-    private final RoteKafkaConsumer consumer;
-    private final RoteKafkaProducer<String, TradingEngineServiceResponse> kafkaProducer;
+    private final TradingEngineConsumer consumer;
     private final RoteKafkaProducer<String, OrderBookSnapshot> orderBookSnapshotProducer;
     private final RoteKafkaProducer<String, Trade> tradeProducer;
-    private final KafkaConfigurationProvider kafkaConfigurationProvider;
     private final TradingEngine tradingEngine;
     private final ReferentialInventory referentialInventory;
-    private final TradingEngineContextInstance tradingEngineContextInstance;
-    private final ITradingEngineContextPersistor tradingContextPersistor;
-    private final HashMap<TradingEngineServiceRequestType, ITradingEngineRequestHandler> handlers = new HashMap<>();
 
-    public TradingEngineStreamingService(RoteKafkaConsumer requestConsumer,
-                                         RoteKafkaProducer<String, TradingEngineServiceResponse> responseProducer,
+    public TradingEngineStreamingService(TradingEngineConsumer requestConsumer,
                                          RoteKafkaProducer<String, OrderBookSnapshot> orderBookSnapshotProducer,
                                          RoteKafkaProducer<String, Trade> tradeProducer,
-                                         KafkaConfigurationProvider kafkaConfigurationProvider,
                                          TradingEngine tradingEngine,
-                                         ReferentialInventory referentialInventory,
-                                         TradingEngineContextInstance tradingEngineContextInstance,
-                                         ITradingEngineContextPersistor tradingContextPersistor) {
+                                         ReferentialInventory referentialInventory) {
         this.consumer = requestConsumer;
-        this.kafkaProducer = responseProducer;
         this.orderBookSnapshotProducer = orderBookSnapshotProducer;
         this.tradeProducer = tradeProducer;
-        this.kafkaConfigurationProvider = kafkaConfigurationProvider;
         this.tradingEngine = tradingEngine;
         this.referentialInventory = referentialInventory;
-        this.tradingEngineContextInstance = tradingEngineContextInstance;
-        this.tradingContextPersistor = tradingContextPersistor;
 
-        handlers.put(TradingEngineServiceRequestType.GetBalance, this::handleGetBalanceRequest);
-        handlers.put(TradingEngineServiceRequestType.GetBalances, this::handleGetBalancesRequest);
-        handlers.put(TradingEngineServiceRequestType.GetBook, this::handleGetBookRequest);
-        handlers.put(TradingEngineServiceRequestType.LimitOrder, this::handleLimitOrderRequest);
-        handlers.put(TradingEngineServiceRequestType.AdjustBalance, this::handleAdjustBalanceRequest);
-        handlers.put(TradingEngineServiceRequestType.Cancel, this::handleCancelRequest);
-        handlers.put(TradingEngineServiceRequestType.CancelAll, this::handleCancelAllRequest);
-        handlers.put(TradingEngineServiceRequestType.Error, this::handleErrorRequest);
+        this.consumer.addHandler(TradingEngineServiceRequestType.GetBalance, this::handleGetBalanceRequest);
+        this.consumer.addHandler(TradingEngineServiceRequestType.GetBalances, this::handleGetBalancesRequest);
+        this.consumer.addHandler(TradingEngineServiceRequestType.GetBook, this::handleGetBookRequest);
+        this.consumer.addHandler(TradingEngineServiceRequestType.LimitOrder, this::handleLimitOrderRequest);
+        this.consumer.addHandler(TradingEngineServiceRequestType.AdjustBalance, this::handleAdjustBalanceRequest);
+        this.consumer.addHandler(TradingEngineServiceRequestType.Cancel, this::handleCancelRequest);
+        this.consumer.addHandler(TradingEngineServiceRequestType.CancelAll, this::handleCancelAllRequest);
+        this.consumer.addHandler(TradingEngineServiceRequestType.Error, this::handleErrorRequest);
     }
 
     public void run() {
-        try {
-            try (var adminClient = new RoteKafkaAdminClient(this.kafkaConfigurationProvider)) {
-                adminClient.createTopic(TradingEngineServiceConsts.WriteRequestTopic, 1);
-                adminClient.createTopic(TradingEngineServiceConsts.ReadRequestTopic, 1);
-                adminClient.createTopic(TradingEngineServiceConsts.OrderBookDataTopic, 1);
-                adminClient.createTopic(TradingEngineServiceConsts.TradeDataTopic, 1);
-            }
-        } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            throw new RuntimeException(e);
-        }
-
-        var startingOffset = tradingEngineContextInstance.getContext().sequence;
-        try {
-            log.info("Running trading engine service; starting at offset '" + startingOffset + "'");
-
-            var topics = List.of(
-                    new RoteKafkaConsumer.TopicPartitionAndOffet(TradingEngineServiceConsts.WriteRequestTopic, 0, Optional.of(startingOffset)),
-                    new RoteKafkaConsumer.TopicPartitionAndOffet(TradingEngineServiceConsts.ReadRequestTopic, 0, Optional.empty())
-                    );
-
-            consumer.consumePartitions(topics, false, this::handleKafkaRecord, this::handleControlMessage);
-            log.info("Stopped trading engine service");
-        } catch (Exception e) {
-            log.error("Trading engine service quit", e);
-            throw e;
-        }
+        consumer.run();
     }
 
     public Future<Object> snapshot() {
-        return consumer.queueControlMessage(new TradingEngineServiceSnapshotRequest());
-    }
-
-    private void handleControlMessage(ProcessingQueue.ProcessingQueueItem o) {
-        try {
-            if (o.getObject() instanceof TradingEngineServiceSnapshotRequest) {
-                var context = tradingEngineContextInstance.getContext();
-                tradingContextPersistor.save(context);
-                o.setResult(true);
-            } else throw new Exception("Unknown control message type");
-        } catch (Exception e) {
-            log.error("Failed to process control message", e);
-            o.setException(e);
-        }
-    }
-
-    private void handleKafkaRecord(ConsumerRecord<String, TradingEngineServiceRequest> record) {
-        var request = record.value();
-        var responseTopicBytes = record.headers().headers(KafkaConsts.ResponseTopicHeader).iterator().next().value();
-        var responseIdBytes = record.headers().headers(KafkaConsts.ResponseIdHeader).iterator().next().value();
-        var responseTopic = new String(responseTopicBytes, StandardCharsets.UTF_8);
-        var responseId = new String(responseIdBytes, StandardCharsets.UTF_8);
-
-        TradingEngineServiceResponse response;
-        try {
-            var type = request.type();
-            log.info("Processing '" + type + "' request");
-            var handler = handlers.get(type);
-            response = handler.handle(request);
-            tradingEngineContextInstance.getContext().sequence = record.offset();
-        } catch (Exception e) {
-            log.error("Failed to process request", e);
-            response = new TradingEngineServiceResponse(new TradingEngineErrorResult(e.getMessage()));
-        }
-
-        sendResponse(responseTopic, responseId, response);
+        return consumer.snapshot();
     }
 
     private TradingEngineServiceResponse handleGetBookRequest(TradingEngineServiceRequest request) throws Exception {
@@ -199,7 +117,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
     }
 
     private OrderBookSnapshot getOrderBookSnapshot(Instrument instrument) {
-        var orderBook = tradingEngineContextInstance.getContext().ensureOrderBook(instrument);
+        var orderBook = tradingEngine.ensureOrderBook(instrument);
         return new OrderBookSnapshot(instrument.code(), orderBook.orderBook().orderSequence, orderBook.orderBook().bids, orderBook.orderBook().asks);
     }
 
@@ -221,16 +139,10 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         throw new Exception("ping");
     }
 
-    private void sendResponse(String responseTopic, String responseId, TradingEngineServiceResponse response) {
-        Header responseIdHeader = new RoteKafkaConsumer.KafkaHeader(KafkaConsts.ResponseIdHeader, responseId.getBytes(StandardCharsets.UTF_8));
-        var headers = List.of(responseIdHeader);
-        kafkaProducer.produce(responseTopic, null, response, headers, true);
-    }
-
     @Override
     public void close() {
         consumer.close();
-        kafkaProducer.close();
         orderBookSnapshotProducer.close();
+        tradeProducer.close();
     }
 }
