@@ -17,16 +17,29 @@ public class Quoter(QuoteStore quoteStore, RoteClient roteClient, ILogger<Quoter
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var currentQuote = quoteStore.GetOrNull(Configuration.ExchangeInstrument, Configuration.Exchange);
-            if (currentQuote == null)
+            try
             {
-                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
-                continue;
+                var currentQuote = quoteStore.GetOrNull(Configuration.ExchangeInstrument, Configuration.Exchange);
+                if (currentQuote == null)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                    continue;
+                }
+
+                if (_previousQuote is null || IsQuoteDifferent(_previousQuote, currentQuote))
+                    await Reprice(currentQuote, stoppingToken);
+                _previousQuote = currentQuote;
+                await Task.Delay(Configuration.Interval, stoppingToken);
             }
-            if (_previousQuote is null || IsQuoteDifferent(_previousQuote, currentQuote))
-                await Reprice(currentQuote, stoppingToken);
-            _previousQuote = currentQuote;
-            await Task.Delay(Configuration.Interval, stoppingToken);
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed to quote");
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
         }
     }
 
