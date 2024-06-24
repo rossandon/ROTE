@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import shared.service.TradingEngineKafkaRequestResponseClient;
 import shared.service.TradingEngineServiceRequest;
-import webService.api.models.GetBookResponse;
+import webService.api.models.OrderBookSnapshotModel;
 import webService.security.RoteUserContext;
 
 import java.util.concurrent.Future;
@@ -17,14 +17,14 @@ public class BookController {
         TradingEngineKafkaRequestResponseClient client;
 
         @GetMapping("book")
-        Future<GetBookResponse> getBooks(RoteUserContext roteUserContext, @RequestParam("instrumentCode") String instrumentCode) throws Exception {
+        Future<OrderBookSnapshotModel> getBooks(@RequestParam("instrumentCode") String instrumentCode) throws Exception {
             var future = client.sendAsync(TradingEngineServiceRequest.getBook(instrumentCode));
-            var accountId = roteUserContext.getAccountId();
+            var accountId = RoteUserContext.GetAccountId();
 
             return future.thenApply(resp -> {
                 try {
                     resp.assertOk();
-                    return new GetBookResponse(accountId, resp.orderBookSnapshot());
+                    return new OrderBookSnapshotModel(accountId, resp.orderBookSnapshot());
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }

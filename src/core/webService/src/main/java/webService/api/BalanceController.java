@@ -21,8 +21,8 @@ public class BalanceController {
     TradingEngineKafkaRequestResponseClient client;
 
     @GetMapping("balances/list")
-    Future<HashMap<String, BigDecimal>> list(RoteUserContext roteUserContext) throws Exception {
-        var future = client.sendAsync(TradingEngineServiceRequest.getBalances(roteUserContext.getAccountId()));
+    Future<HashMap<String, BigDecimal>> list() throws Exception {
+        var future = client.sendAsync(TradingEngineServiceRequest.getBalances(RoteUserContext.GetAccountId()));
         return future.thenApply(resp -> {
             try {
                 resp.assertOk();
@@ -34,8 +34,8 @@ public class BalanceController {
     }
 
     @PostMapping("balances/deposit")
-    void deposit(RoteUserContext roteUserContext, @RequestParam("assetCode") String assetCode, @RequestParam("amount") BigDecimal amount) throws Exception {
-        var resp = client.send(TradingEngineServiceRequest.adjustBalance(amount, roteUserContext.getAccountId(), assetCode));
+    void deposit(@RequestParam("assetCode") String assetCode, @RequestParam("amount") BigDecimal amount) throws Exception {
+        var resp = client.send(TradingEngineServiceRequest.adjustBalance(amount, RoteUserContext.GetAccountId(), assetCode));
         resp.assertOk();
     }
 }

@@ -1,14 +1,31 @@
 package webService.security;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Component;
 
-@Component
+import java.security.Principal;
+
 public class RoteUserContext {
-    public long getAccountId() throws Exception {
+    private final Principal principal;
+
+    public RoteUserContext(Principal principal) {
+        this.principal = principal;
+    }
+
+    public static long GetAccountId() throws Exception {
         var principal = SecurityContextHolder.getContext().getAuthentication();
+        return new RoteUserContext(principal).getAccountId();
+    }
+
+    public static String GetDisplayName() throws Exception {
+        var principal = SecurityContextHolder.getContext().getAuthentication();
+        return new RoteUserContext(principal).getDisplayName();
+    }
+
+    public long getAccountId() throws Exception {
         if (principal instanceof OAuth2AuthenticationToken oauthPrincipal) {
             return Long.parseLong(oauthPrincipal.getPrincipal().getName().substring(3));
         }
@@ -19,7 +36,6 @@ public class RoteUserContext {
     }
 
     public String getDisplayName() throws Exception {
-        var principal = SecurityContextHolder.getContext().getAuthentication();
         if (principal instanceof OAuth2AuthenticationToken oauthPrincipal) {
             return oauthPrincipal.getPrincipal().getAttribute("email");
         }

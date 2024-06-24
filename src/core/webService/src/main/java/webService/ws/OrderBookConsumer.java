@@ -4,16 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.*;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 import org.springframework.web.util.UriComponentsBuilder;
 import shared.kafka.KafkaConfigurationProvider;
 import shared.kafka.RoteKafkaAdminClient;
 import shared.kafka.RoteKafkaConsumer;
-import shared.service.TradingEngineServiceConsts;
 import shared.service.results.OrderBookSnapshot;
+import webService.api.models.OrderBookSnapshotModel;
+import webService.security.RoteUserContext;
 
-import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -105,13 +107,14 @@ public class OrderBookConsumer extends AbstractWebSocketHandler implements Runna
     }
 
     private void sendBookSnapshot(WebSocketSession session, OrderBookSnapshot orderBookSnapshot) {
+        var userContext = new RoteUserContext(session.getPrincipal());
         try {
             StringWriter writer = new StringWriter();
             ObjectMapper mapper = new ObjectMapper();
-            mapper.writeValue(writer, orderBookSnapshot);
+            mapper.writeValue(writer, new OrderBookSnapshotModel(userContext.getAccountId(), orderBookSnapshot));
             String jsonText = writer.toString();
             session.sendMessage(new TextMessage(jsonText));
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("failed to send book snapshot", e);
         }
     }

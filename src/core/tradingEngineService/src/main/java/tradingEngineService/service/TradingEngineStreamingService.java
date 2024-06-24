@@ -106,7 +106,7 @@ public class TradingEngineStreamingService implements Runnable, Closeable {
         if (result.trades() == null)
             return;
         for (var trade : result.trades()) {
-            var marketDataTrade = new Trade(instrument.code(), LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), trade.id(), trade.size(), trade.price(), trade.takerSide());
+            var marketDataTrade = new Trade(instrument.code(), LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME), trade.id(), trade.makerAccountId(), trade.takerAccountId(), trade.size(), trade.price(), trade.takerSide());
             tradeProducer.produce(TradingEngineServiceConsts.TradeDataTopic, instrument.code(), marketDataTrade, null, true);
         }
     }

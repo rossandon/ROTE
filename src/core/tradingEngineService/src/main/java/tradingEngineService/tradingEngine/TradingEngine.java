@@ -47,11 +47,12 @@ public class TradingEngine {
         }
 
         if (result.status() == OrderBookLimitOrderResultStatus.Partial || result.status() == OrderBookLimitOrderResultStatus.Filled) {
-            bookTrades(result, order.instrument());
+            bookTrades(result, order);
         }
 
         return new LimitOrderResult(LimitOrderResultStatus.Ok, null, result);
     }
+
 
     public boolean cancel(Account account, Instrument instrument, long orderId) {
         var cancelledOrder = getContext().ensureOrderBook(instrument).orderBook().cancelOrder(orderId);
@@ -70,9 +71,17 @@ public class TradingEngine {
         adjustBalance(account, fundingAsset, fundingSize);
     }
 
-    private void bookTrades(OrderBookLimitOrderResult result, Instrument instrument) {
+    private void bookTrades(OrderBookLimitOrderResult result, LimitOrder order) {
+        var contraTotal = BigDecimal.ZERO;
+
         for (var trade : result.trades()) {
-            bookTrade(trade, instrument);
+            bookTrade(trade, order.instrument());
+            contraTotal = contraTotal.add(trade.price().multiply(trade.size()));
+        }
+
+        if (order.limitOrder().side() == OrderBookSide.Buy) {
+            var difference = order.limitOrder().price().multiply(order.limitOrder().size()).subtract(contraTotal);
+            adjustBalance(order.account(), order.fundingAsset(), difference);
         }
     }
 

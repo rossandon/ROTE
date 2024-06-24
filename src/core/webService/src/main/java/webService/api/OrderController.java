@@ -21,10 +21,10 @@ public class OrderController {
     TradingEngineKafkaRequestResponseClient client;
 
     @PostMapping("orders/submit")
-    void placeOrder(RoteUserContext roteUserContext, @RequestParam("instrumentCode") String instrumentCode,
+    void placeOrder(@RequestParam("instrumentCode") String instrumentCode,
                     @RequestParam("amount") BigDecimal amount, @RequestParam("price") BigDecimal price,
                     @RequestParam("side") OrderBookSide side) throws Exception {
-        var resp = client.send(TradingEngineServiceRequest.limitOrder(amount, price, roteUserContext.getAccountId(), instrumentCode, side));
+        var resp = client.send(TradingEngineServiceRequest.limitOrder(amount, price, RoteUserContext.GetAccountId(), instrumentCode, side));
         resp.assertOk();
         if (resp.limitOrderResult().type() == LimitOrderResultStatus.Rejected) {
             throw new Exception("Rejected: " + resp.limitOrderResult().rejectReason());
@@ -32,14 +32,14 @@ public class OrderController {
     }
 
     @PostMapping("orders/cancel")
-    void cancelOrder(RoteUserContext roteUserContext, @RequestParam("id") Long id, @RequestParam("instrumentCode") String instrumentCode) throws Exception {
-        var resp = client.send(TradingEngineServiceRequest.cancel(roteUserContext.getAccountId(), instrumentCode, id));
+    void cancelOrder(@RequestParam("id") Long id, @RequestParam("instrumentCode") String instrumentCode) throws Exception {
+        var resp = client.send(TradingEngineServiceRequest.cancel(RoteUserContext.GetAccountId(), instrumentCode, id));
         resp.assertOk();
     }
 
     @PostMapping("orders/cancel-all")
-    void cancelAllOrders(RoteUserContext roteUserContext, @RequestParam("instrumentCode") String instrumentCode) throws Exception {
-        var resp = client.send(TradingEngineServiceRequest.cancelAll(roteUserContext.getAccountId(), instrumentCode));
+    void cancelAllOrders(@RequestParam("instrumentCode") String instrumentCode) throws Exception {
+        var resp = client.send(TradingEngineServiceRequest.cancelAll(RoteUserContext.GetAccountId(), instrumentCode));
         resp.assertOk();
     }
 }

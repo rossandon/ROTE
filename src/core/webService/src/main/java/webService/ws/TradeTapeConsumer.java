@@ -12,6 +12,8 @@ import shared.kafka.RoteKafkaAdminClient;
 import shared.kafka.RoteKafkaConsumer;
 import shared.service.TradingEngineServiceConsts;
 import shared.service.results.Trade;
+import webService.api.models.TradeModel;
+import webService.security.RoteUserContext;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -128,14 +130,15 @@ public class TradeTapeConsumer extends AbstractWebSocketHandler implements Runna
         return instrumentCode.get(0);
     }
 
-    private void sendTrade(WebSocketSession session, Trade orderBookSnapshot) {
+    private void sendTrade(WebSocketSession session, Trade trade) {
         try {
+            var userContext = new RoteUserContext(session.getPrincipal());
             StringWriter writer = new StringWriter();
             ObjectMapper mapper = new ObjectMapper();
-            mapper.writeValue(writer, orderBookSnapshot);
+            mapper.writeValue(writer, new TradeModel(userContext.getAccountId(), trade));
             String jsonText = writer.toString();
             session.sendMessage(new TextMessage(jsonText));
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("failed to send trade", e);
         }
     }
